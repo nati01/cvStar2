@@ -2593,7 +2593,7 @@ int reduceStars(char *fileName, int rot)
 
 
 	namedWindow("Csuszkak", WINDOW_NORMAL);
-	resizeWindow("Csuszkak", 900, 400);
+	resizeWindow("Csuszkak", 900, 700);
 
 	//canvas
 
@@ -2653,38 +2653,20 @@ int reduceStars(char *fileName, int rot)
 
 
 	int		ifmul = 1000;
-	//int		ifmul = 22799;
-	//int		ifmul = 20000;
-	//int		ifmul = 23476;
 	int		ifmulmax = 200000;
 	double	fmul = (double)ifmul/1000.0;//30;
 
 	int		ifsub = 0;
-	//int		ifsub = 207;
-	//int		ifsub = 202;
-	//int		ifsub = 204;
 	int		ifsubmax = 300;
 	double	fsub = (double)ifsub / 1000.0;//0.102;
 
-	//int		ithresvalmax = 1000.0 * colmax * 1.05;
 	int		ithresvalmax = 1000.0 * colmax * 2.05;
-	//int		ithresval = ithresvalmax;
-	//int		ithresval = 700;
 	int		ithresval = 500;
 	double	thresval = (double)ithresval / (double)1000.0;
 
-	//int		ierode = 28;
-	//int		ierode = 50;
 	int		ierode = 16 * (double)DISP_W / (double)1600;
 	int		ierodemax = 100;
 
-	//int		ierode = 30;
-	//int		ierode = 12;
-	//int		ierodemax = 100;
-
-
-//#if DISP_W >= 1600
-
 
 	int		iStarDiv = 1000;
 	int		iStarDivMax = 10000;
@@ -2694,41 +2676,27 @@ int reduceStars(char *fileName, int rot)
 	int		iStarDivBsMax = 10000;
 	double	StarDivBs = (double)iStarDiv / (double)1000.0;
 
+	//	Kis csillagok, kis lyukak
 	int		iedge = 1500;
 	int		iedgemax = 3000;
 	int		fedge = (double)iedge / 1000;
 
-	int		ifmin = 38;
+	int		ifmin = 470;
 	int		ifminmax = 1000;
 	double	fmin = (double)ifmin / (double)ifminmax;
-	
+
+	//	Kis csillagok, nagy lyukak
+	int		iedge2 = 2500;
+	int		iedgemax2 = 3000;
+	int		fedge2 = (double)iedge2 / 1000;
+
+	int		ifmin2 = 420;
+	int		ifminmax2 = 1000;
+	double	fmin2 = (double)ifmin2 / (double)ifminmax;
+
 	int		iedgedilate = 3;
 	int		iedgedilatemax = 15;
 
-/*#else
-
-
-	int		iStarDiv = 1000;
-	int		iStarDivMax = 10000;
-	double	StarDiv = (double)iStarDiv / (double)1000.0;
-
-	int		iStarDivBs = 1000;
-	int		iStarDivBsMax = 10000;
-	double	StarDivBs = (double)iStarDiv / (double)1000.0;
-
-	int		iedge = 1500;
-	int		iedgemax = 3000;
-	int		fedge = (double)iedge / 1000;
-
-	int		ifmin = 38;
-	int		ifminmax = 1000;
-	double	fmin = (double)ifmin / (double)ifminmax;
-	
-
-	int		iedgedilate = 3;
-	int		iedgedilatemax = 15;
-#endif
-*/
 
 
 	Mat dstmask( src.size(), CV_8UC1, Scalar(0) );
@@ -2807,6 +2775,13 @@ int reduceStars(char *fileName, int rot)
 		//	Az fedge erteke 1.0 es 2.0 kozott a legjobb
 		createTrackbar("star vagas", "Csuszkak", &ifmin, ifminmax, on_trackbar);
 		fmin = (double)ifmin / (double)ifminmax;
+
+		createTrackbar("star ele2", "Csuszkak", &iedge2, iedgemax2, on_trackbar);
+		fedge2 = (double)iedge2/1000.0;
+
+		createTrackbar("star vaga2", "Csuszkak", &ifmin2, ifminmax2, on_trackbar);
+		fmin2 = (double)ifmin2 / (double)ifminmax2;
+
 
 		//	A kisebb csillagok is haloval terheltek, noveljuk a maszkjukat
 		createTrackbar("star kitrj", "Csuszkak", &iedgedilate, iedgedilatemax, on_trackbar);
@@ -2918,8 +2893,8 @@ int reduceStars(char *fileName, int rot)
 				if( 0 ) {
 					removeLittleStars( dst       , fedge, fmin, iedgedilate, dstResAvg , dstEdge1, dstHole1, dstHole3, dstIsHole );
 				} else {
-					removeLittleStars( dst       , fedge, fmin,           0, dstResAvg1, dstEdge1, dstHole1, dstHole2, dstIsHole );
-					removeLittleStars( dstResAvg1, fedge, fmin, iedgedilate, dstResAvg , dstEdge2, dstHole2, dstHole3, dstIsHole );
+					removeLittleStars( dst       , fedge , fmin ,           0, dstResAvg1, dstEdge1, dstHole1, dstHole2, dstIsHole );
+					removeLittleStars( dstResAvg1, fedge2, fmin2, iedgedilate, dstResAvg , dstEdge2, dstHole2, dstHole3, dstIsHole );
 				}
 			} else {
 				GaussianBlur( dst , dst3, cv::Size(0, 0), 3 );
@@ -3216,7 +3191,7 @@ int main( int argc, char *argv[] )
 	//char fileName[100] = VPATH"20200820_Bp_Triangulum1.tif"; rot = 0;
 	//char fileName[100] = VPATH"20211028_Mc_Soul_200mm_LDFB3_485min.tif"; rot = 0;
 	//char fileName[100] = VPATH"20211028_Mc_Iris_200mm_03h20m.tif"; rot = 0;
-	//char fileName[100] = VPATH"20211028_Mc_FlamingStar_200mm_LDFB2_4h03m.tif"; rot = 0;
+	char fileName[100] = VPATH"20211028_Mc_FlamingStar_200mm_LDFB2_4h03m.tif"; rot = 0;
 	//char fileName[100] = VPATH"20211028_Mc_Pacman_200mm_LDFB_1h12m.tif"; rot = 0;
 	//char fileName[100] = VPATH"20211008_Elephant300mm35min.tif"; rot = 0;
 	//char fileName[100] = VPATH"20211002_Mc_California_LDFB_1h17_01.tif"; rot = 0;
@@ -3242,7 +3217,7 @@ int main( int argc, char *argv[] )
 	//char fileName[100] = VPATH"20200327_0410_0411_0414_Pinwheel_Pont.tif"; rot = 0;
 	//char fileName[100] = VPATH"20200608_Bp_ngc7129.tif"; rot = 0;
 	//char fileName[100] = VPATH"20200812_Mc_MW.tif"; rot = 0;
-	char fileName[100] = VPATH"20200819_20211002_Cailif_2h24m.tif"; rot = 0;
+	//char fileName[100] = VPATH"20200819_20211002_Cailif_2h24m.tif"; rot = 0;
 	
 
 
