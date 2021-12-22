@@ -24,7 +24,7 @@
 
 //#include <opencv2/stitching/stitching.hpp>
 #include "f:/opencv310/opencv/sources/modules/stitching/include/opencv2/stitching.hpp"
-#pragma comment(lib, "opencv_stitching310d.lib")
+//#pragma comment(lib, "opencv_stitching310d.lib")
 
 //#include <opencv2/contrib/contrib.hpp>
 
@@ -32,29 +32,29 @@
 #include <cmath>
 #include <iostream>
 
-#pragma comment(lib, "opencv_videoio310d.lib")	//	VideoCapture
-#pragma comment(lib, "opencv_video310d.lib")
+//#pragma comment(lib, "opencv_videoio310d.lib")	//	VideoCapture
+//#pragma comment(lib, "opencv_video310d.lib")
 
 #pragma comment(lib, "opencv_core310d.lib")   
 #pragma comment(lib, "opencv_highgui310d.lib")   
 #pragma comment(lib, "opencv_imgproc310d.lib")   
-#pragma comment(lib, "opencv_objdetect310d.lib") //HOGDescriptor
-#pragma comment(lib, "opencv_ml310d.lib")
+//#pragma comment(lib, "opencv_objdetect310d.lib") //HOGDescriptor
+//#pragma comment(lib, "opencv_ml310d.lib")
 
 
-#pragma comment(lib, "opencv_calib3d310d.lib")
+//#pragma comment(lib, "opencv_calib3d310d.lib")
 
 #pragma comment(lib, "opencv_imgcodecs310d.lib")
 //#pragma comment(lib, "opencv_contrib310d.lib")   
 
-#pragma comment(lib, "opencv_features2d310d.lib")   
+//#pragma comment(lib, "opencv_features2d310d.lib")   
 //#pragma comment(lib, "opencv_nonfree310d.lib")   
 //#pragma comment(lib, "opencv_ocl310d.lib")   
-#pragma comment(lib, "opencv_flann310d.lib")
+//#pragma comment(lib, "opencv_flann310d.lib")
 
 //#pragma comment(lib, "opencv_calib3d310d.lib")
 //#pragma comment(lib, "opencv_contrib310d.lib")
-#pragma comment(lib, "opencv_xfeatures2d310d.lib")
+//#pragma comment(lib, "opencv_xfeatures2d310d.lib")
 
 using namespace cv;
 using namespace std;
@@ -83,13 +83,21 @@ using namespace std;
 
 #define		VPATH		"f:/nagy4/__C_Mintak/cvStar2/cvStar2/"
 
-//#define		DISP_W		600
-//#define		DISP_W		800
-#define		DISP_W		1100
-//#define		DISP_W		1600
-//#define		DISP_W		2400
-//#define		DISP_W		4000
-//#define		DISP_W		100
+//#define		DISP_WW		300
+//#define		DISP_WW		450
+//#define		DISP_WW		600
+//#define		DISP_WW		800
+//#define		DISP_WW		950
+//#define		DISP_WW		1100
+//#define		DISP_WW		1300
+#define		DISP_WW		1400
+//#define		DISP_WW		1600
+//#define		DISP_WW		2400
+//#define		DISP_WW		4000
+//#define		DISP_WW		100
+
+//int	disp_w = DISP_WW;
+int	DISP_W = DISP_WW;
 double sss;
 
 /***************************************************************************************
@@ -2162,7 +2170,7 @@ return 1;
 *   return:
 *
 ***************************************************************************************/
-int starMaskTresh( Mat src, Mat &dst, Mat &dstmask, double thresval, double thresmul, double fmul, double fsub )
+/*int starMaskTresh( Mat src, Mat &dst, Mat &dstmask, double thresval, double thresmul, double fmul, double fsub )
 {
 	for (int i = 0; i < src.cols; i++) {
 		for (int j = 0; j < src.rows - 0; j++) {
@@ -2175,25 +2183,29 @@ int starMaskTresh( Mat src, Mat &dst, Mat &dstmask, double thresval, double thre
 			//
 			//	MASK
 			//
-			if( 
-				( Red > thresval 
-				|| Green > thresval 
-				|| Blue > thresval
-				)
-			//	Ezt nem tudtam mire hasznalni. A celja az lett volna, hogy az eles, egyszinu halokat
-			//	megtalaljam.
-			//	||
-			//	(   Red > thresmul * Green 
-			//	 || Red > thresmul * Blue
-			//	 || Green > thresmul * Red
-			//	 || Green > thresmul * Blue
-			//	 || Blue > thresmul * Red
-			//	 || Blue > thresmul * Green
-			//	) 
-			) {
-				dstmask.at<Vec3f>(j, i) = {0,0,0};
-			} else {
-				dstmask.at<Vec3f>(j, i) = {1,1,1};
+			if( thresval ) {
+				if( 
+					( Red > thresval 
+					|| Green > thresval 
+					|| Blue > thresval
+					)
+				//	Ezt nem tudtam mire hasznalni. A celja az lett volna, hogy az eles, egyszinu halokat
+				//	megtalaljam.
+				//	||
+				//	(   Red > thresmul * Green 
+				//	 || Red > thresmul * Blue
+				//	 || Green > thresmul * Red
+				//	 || Green > thresmul * Blue
+				//	 || Blue > thresmul * Red
+				//	 || Blue > thresmul * Green
+				//	) 
+				) {
+					//dstmask.at<Vec3f>(j, i) = {0,0,0};
+					dstmask.at<uchar>(j, i) = 0;
+				} else {
+					//dstmask.at<Vec3f>(j, i) = {1,1,1};
+					dstmask.at<uchar>(j, i) = 255;
+				}
 			}
 
 			//if( Red < fmax && Green < fmax && Blue < fmax   &&   Red < 1.1*Green && Red < 1.1*Blue) {
@@ -2215,10 +2227,51 @@ int starMaskTresh( Mat src, Mat &dst, Mat &dstmask, double thresval, double thre
 		}
 	}
 return 1;
+}*/
+/***************************************************************************************
+*
+*   function:		starMaskTresh
+*   arguments:
+*	description:	
+*	globals:
+*	side effect:
+*   return:
+*
+***************************************************************************************/
+int starMaskTresh( Mat src, Mat &dstmask, double thresval )
+{
+	for (int i = 0; i < src.cols; i++) {
+		for (int j = 0; j < src.rows - 0; j++) {
+			Vec3f  intensity = src.at<Vec3f>(j, i);
+
+			float Red = (float)intensity.val[0];
+			float Green = (float)intensity.val[1];
+			float Blue = (float)intensity.val[2];
+
+			//
+			//	MASK
+			//
+			if( thresval ) {
+				if( 
+					( Red > thresval 
+					|| Green > thresval 
+					|| Blue > thresval
+					)
+				) {
+					//dstmask.at<Vec3f>(j, i) = {0,0,0};
+					dstmask.at<uchar>(j, i) = 0;
+				} else {
+					//dstmask.at<Vec3f>(j, i) = {1,1,1};
+					dstmask.at<uchar>(j, i) = 255;
+				}
+			}
+		}
+	}
+return 1;
 }
 /***************************************************************************************
 *
-*   function:		
+*   function:		get3x3Avegrage
 *   arguments:
 *	description:	
 *	globals:
@@ -2256,7 +2309,7 @@ int get3x3Avegrage( Mat src, int x, int y, Vec3f &intensity ) {
 	}								
 	//intensity_x0 = src.at<Vec3f>(j, m);
 	if( intensity.val[0]  ||  intensity.val[1] || intensity.val[2] ) {
-		return 1;
+		return tmp0;
 	}
 return 0;
 }
@@ -2272,12 +2325,15 @@ return 0;
 ***************************************************************************************/
 int replaceHole( Mat src, Mat dstIsHole, Mat &dst, int iavg )
 {
+	int		ret;
 	int		istart = 0;
 	int		jstart = 0;
 	for (int i = istart; i < dst.cols; i++) {
 		for (int j = jstart; j < dst.rows - 0; j++) {
-			Vec3f  intensity_IsHole = dstIsHole.at<Vec3f>(j, i);
-			if( intensity_IsHole.val[0]  ||  intensity_IsHole.val[1] || intensity_IsHole.val[2] ) {
+			//Vec3f  intensity_IsHole = dstIsHole.at<Vec3f>(j, i);
+			uchar  intensity_IsHole = dstIsHole.at<uchar>(j, i);
+			//if( intensity_IsHole.val[0]  ||  intensity_IsHole.val[1] || intensity_IsHole.val[2] ) {
+			if( intensity_IsHole ) {
 				int x0 = -1, x1 = -1, y0 = -1, y1 = -1;
 				Vec3f  intensity_x0;// = src.at<Vec3f>(j, i);
 				Vec3f  intensity_x1;
@@ -2286,7 +2342,7 @@ int replaceHole( Mat src, Mat dstIsHole, Mat &dst, int iavg )
 				Vec3f  intensity_tmp0;
 				int		tmp0; 
 				Vec3f  intensity_tmp1;
-				int		isav = 60;
+				int		isav = 120;
 
 				if( i == 100 && j ==117 ) {
 					printf("");
@@ -2297,7 +2353,7 @@ int replaceHole( Mat src, Mat dstIsHole, Mat &dst, int iavg )
 					if( intensity_x0.val[0]  ||  intensity_x0.val[1] || intensity_x0.val[2] ) {
 						x0 = m;
 						if( iavg ) {
-							get3x3Avegrage( src, m, j, intensity_x0 );
+							ret = get3x3Avegrage( src, m, j, intensity_x0 );
 						}
 						break;
 					}
@@ -2307,7 +2363,7 @@ int replaceHole( Mat src, Mat dstIsHole, Mat &dst, int iavg )
 					if( intensity_x1.val[0]  ||  intensity_x1.val[1] || intensity_x1.val[2] ) {
 						x1 = m;
 						if( iavg ) {
-							get3x3Avegrage( src, m, j, intensity_x1 );
+							ret = get3x3Avegrage( src, m, j, intensity_x1 );
 						}
 						break;
 					}
@@ -2317,7 +2373,7 @@ int replaceHole( Mat src, Mat dstIsHole, Mat &dst, int iavg )
 					if( intensity_y0.val[0]  ||  intensity_y0.val[1] || intensity_y0.val[2] ) {
 						y0 = n;
 						if( iavg ) {
-							get3x3Avegrage( src, i, n, intensity_y0 );
+							ret = get3x3Avegrage( src, i, n, intensity_y0 );
 						}
 						break;
 					}
@@ -2327,14 +2383,14 @@ int replaceHole( Mat src, Mat dstIsHole, Mat &dst, int iavg )
 					if( intensity_y1.val[0]  ||  intensity_y1.val[1] || intensity_y1.val[2] ) {
 						y1 = n;
 						if( iavg ) {
-							get3x3Avegrage( src, i, n, intensity_y1 );
+							ret = get3x3Avegrage( src, i, n, intensity_y1 );
 						}
 						break;
 					}
 				}
-				if( (x1-x0) && (y1 - y0) ) {
-					float	dx = (i - x0) / (x1 - x0);
-					float	dy = (j - y0) / (y1 - y0);
+				if( (x0-x1) && (y0 - y1) ) {
+					float	dx = (double)(i - x1) / (double)(x0 - x1);
+					float	dy = (double)(j - y1) / (double)(y0 - y1);
 					Vec3f  intensity_x;
 					Vec3f  intensity_y;
 					if( x0 != -1 && x1 != -1) {
@@ -2343,19 +2399,47 @@ int replaceHole( Mat src, Mat dstIsHole, Mat &dst, int iavg )
 					if( y0 != -1 && y1 != -1) {
 						intensity_y = (dy * intensity_y0 + (1-dy) * intensity_y1);
 					}
+					Vec3f  intensity;
 					if( x0 != -1 && x1 != -1 && y0 != -1 && y1 != -1) {
-						Vec3f  intensity = (intensity_x + intensity_y) / 2.0;
-						dst.at<Vec3f>(j, i) = intensity;
+
+						//if( intensity_x0 == intensity_x1 ) {
+						//	dst.at<Vec3f>(j, i) = {1,1,0};
+						//	continue;
+						//}
+						//if( intensity_y0 == intensity_y1 ) {
+						//	dst.at<Vec3f>(j, i) = {0,1,1};
+						//	continue;
+						//}
+						intensity = (intensity_x + intensity_y) / 2.0;
+						//dst.at<Vec3f>(j, i) = intensity;
 					} else {
 						if( x0 != -1 && x1 != -1) {
-							Vec3f  intensity = intensity_x;
-							dst.at<Vec3f>(j, i) = intensity;
+							//intensity_x = intensity_x0;
+							//dst.at<Vec3f>(j, i) = intensity;
+							//dst.at<Vec3f>(j, i) = {0,0,1};
+						} else {
+							if( x0 != -1 ) {
+								intensity_x = intensity_x0;
+							} else if( x1 != -1 ) {
+								intensity_x = intensity_x1;
+								//dst.at<Vec3f>(j, i) = intensity;
+							} else {
+								dst.at<Vec3f>(j, i) = {1,1,0};
+							}
 						}
 						if( y0 != -1 && y1 != -1) {
-							Vec3f  intensity = intensity_y;
-							dst.at<Vec3f>(j, i) = intensity;
+						} else {
+							if( y0 != -1 ) {
+								intensity_y = intensity_y0;
+							} else if( y1 != -1 ) {
+								intensity_y = intensity_y1;
+							} else {
+								//dst.at<Vec3f>(j, i) = {0,1,1};
+							}
 						}
+						intensity = (intensity_x + intensity_y)/2.0;
 					}
+					dst.at<Vec3f>(j, i) = intensity;
 				} else {
 				}
 			}
@@ -2365,15 +2449,130 @@ return 1;
 }
 /***************************************************************************************
 *
-*   function:		cv_16UNormalization
+*   function:		thresh3FC32To8UC1
 *   arguments:
-*	description:	histEqualization
+*	description:	
 *	globals:
 *	side effect:
 *   return:
 *
 ***************************************************************************************/
-int cv_16UNormalization2(char *fileName, int rot)
+int thresh3FC32To8UC1( Mat srcEdge, float fmin, Mat &dstIsHole, Mat &dstHoleVal0 )
+{
+	for (int i = 0; i < srcEdge.cols; i++) {
+		for (int j = 0; j < srcEdge.rows - 0; j++) {
+			Vec3f  intensity = srcEdge.at<Vec3f>(j, i);
+			if( intensity.val[0] > fmin  ||  intensity.val[1] > fmin  ||  intensity.val[2]  > fmin ) {
+				dstHoleVal0.at<Vec3f>(j, i) = {0,0,0};
+				dstIsHole.at<uchar>(j, i) = 255;
+			} else {
+				dstIsHole.at<uchar>(j, i) = 0;
+			}
+		}
+	}
+return 1;
+}
+/***************************************************************************************
+*
+*   function:		del3FC32Where8UC1is0
+*   arguments:
+*	description:	
+*	globals:
+*	side effect:
+*   return:
+*
+***************************************************************************************/
+int del3FC32Where8UC1is0( Mat dstmask, Mat &dstHole, Mat &dstIsHole )
+{
+	for (int i = 0; i < dstmask.cols; i++) {
+		for (int j = 0; j < dstmask.rows - 0; j++) {
+			uchar  intensity_mask = dstmask.at<uchar>(j, i);
+			if( !intensity_mask ) {
+			} else {
+				//dstHole.at<Vec3f>(j, i) = {0,0,0};
+				dstIsHole.at<uchar>(j, i) = 255;
+			}			
+		}
+	}
+return 1;
+}
+/***************************************************************************************
+*
+*   function:		mul8Ux3FC
+*   arguments:
+*	description:	
+*	globals:
+*	side effect:
+*   return:
+*
+***************************************************************************************/
+int mul8Ux3FC( Mat dstmask, Mat &dst, Mat &dstHole )
+{
+	for (int i = 0; i < dstmask.cols; i++) {
+		for (int j = 0; j < dstmask.rows - 0; j++) {
+			uchar  intensity_mask = dstmask.at<uchar>(j, i);
+			if( !intensity_mask ) {
+				dstHole.at<Vec3f>(j, i) = dst.at<Vec3f>(j, i);
+			} else {
+				dstHole.at<Vec3f>(j, i) = {0,0,0};
+			}			
+		}
+	}
+return 1;
+}
+/***************************************************************************************
+*
+*   function:		
+*   arguments:
+*	description:	
+*	globals:
+*	side effect:
+*   return:
+*
+***************************************************************************************/
+int removeLittleStars( Mat src, float fedge, float fmin, int idilate, Mat &dst, Mat &dstEdge, Mat &dstHole1, Mat &dstHole2, Mat &dstIsHole )
+{
+	Mat		dst3;
+
+	GaussianBlur( src , dst3, cv::Size(0, 0), 3 );
+	addWeighted( src, fedge, dst3, -fedge, 0, dstEdge );
+
+	if( idilate ) {
+		dilate( dstEdge, dstEdge, getStructuringElement( MORPH_ELLIPSE, Size(idilate, idilate) ) );
+	}
+
+	dstHole1 = src.clone();
+	dstIsHole.zeros(src.rows, src.cols, CV_32FC3 );
+	for (int i = 0; i < src.cols; i++) {
+		for (int j = 0; j < src.rows - 0; j++) {
+			Vec3f  intensity = dstEdge.at<Vec3f>(j, i);
+			//Vec3f  intensity_dst = dst.at<Vec3f>(j, i);
+			if( intensity.val[0] > fmin  ||  intensity.val[1] > fmin  ||  intensity.val[2]  > fmin ) {
+				dstHole1.at<Vec3f>(j, i) = {0,0,0};
+				dstIsHole.at<uchar>(j, i) = 255;
+			} else {
+				//dstIsHole.at<uchar>(j, i) = 0;
+			}
+		}
+	}
+	dstHole2 = dstHole1.clone();
+	dst = dstHole1.clone();
+	replaceHole( dstHole1, dstIsHole, dst, 1 );
+	dstHole2 = dst.clone();
+
+return 1;
+}
+/***************************************************************************************
+*
+*   function:		reduceStars
+*   arguments:
+*	description:	
+*	globals:
+*	side effect:
+*   return:
+*
+***************************************************************************************/
+int reduceStars(char *fileName, int rot)
 {
 	int		ret = 0;
 	Mat		src;
@@ -2381,7 +2580,7 @@ int cv_16UNormalization2(char *fileName, int rot)
 	int		imtype = CV_32FC3;
 	//int		imtype = CV_8UC3;
 	Mat		canvas;
-
+/*
 	Mat	mgombsor(400, 400, CV_8UC3, Scalar(64, 0, 0));
 	Rect buttonCrop = Rect(0, 0, 100, 40);
 	mgombsor(buttonCrop ) = Vec3b(200, 200, 200);
@@ -2389,12 +2588,12 @@ int cv_16UNormalization2(char *fileName, int rot)
 
 	setMouseCallback("gombsor", CallBackGombsorMouseFunc, nullptr);
 	imshow("gombsor", mgombsor);
-
+*/
 	//mCurve.zeros(200,200,CV_8UC3);
 
 
 	namedWindow("Csuszkak", WINDOW_NORMAL);
-	resizeWindow("Csuszkak", 600, 600);
+	resizeWindow("Csuszkak", 900, 400);
 
 	//canvas
 
@@ -2439,7 +2638,6 @@ int cv_16UNormalization2(char *fileName, int rot)
 
 	Mat		dst0 = src.clone();
 	Mat		dst;
-	Mat		dst2;
 	double	rmax = 1, gmax = 1, bmax = 1;
 	double	rmin = 1, gmin = 1, bmin = 1;
 
@@ -2453,236 +2651,468 @@ int cv_16UNormalization2(char *fileName, int rot)
 	double	colmax = max( rmax, max( gmax, bmax ) );
 	double	colmin = min( rmin, min( gmin, bmin ) );
 
-	//int		ithresval = 200;
-	//int		ithresvalmax = 1000;
-	int		ithresvalmax = 1000.0 * colmax * 1.05;
-	int		ithresval = ithresvalmax;
-	
-	double	thresval = (double)ithresval / (double)1000.0;
 
-//	int		ithresmul = 300;
-//	int		ithresmulmax = 6000;
-//	double	thresmul = (double)ithresmul / (double)1000.0;//1.1;
-
-	//int		ifmul = 30000;
-	//int		ifmul = colmax * 1000;
-	//int		ifmul = 25959;
-	int		ifmul = 2000;
-	int		ifmulmax = 100000;
+	int		ifmul = 1000;
+	//int		ifmul = 22799;
+	//int		ifmul = 20000;
+	//int		ifmul = 23476;
+	int		ifmulmax = 200000;
 	double	fmul = (double)ifmul/1000.0;//30;
 
-	//int		ifsub = 102;
-	//int		ifsub = 209;
 	int		ifsub = 0;
+	//int		ifsub = 207;
+	//int		ifsub = 202;
+	//int		ifsub = 204;
 	int		ifsubmax = 300;
-	//int		ifsubmax = colmin * 1000;	
 	double	fsub = (double)ifsub / 1000.0;//0.102;
 
-	int		ierode = 0;
-	int		ierodemax = 15;
+	//int		ithresvalmax = 1000.0 * colmax * 1.05;
+	int		ithresvalmax = 1000.0 * colmax * 2.05;
+	//int		ithresval = ithresvalmax;
+	//int		ithresval = 700;
+	int		ithresval = 500;
+	double	thresval = (double)ithresval / (double)1000.0;
 
-	int		iedge = 0;
-	//int		iedge = 1500;
+	//int		ierode = 28;
+	//int		ierode = 50;
+	int		ierode = 16 * (double)DISP_W / (double)1600;
+	int		ierodemax = 100;
+
+	//int		ierode = 30;
+	//int		ierode = 12;
+	//int		ierodemax = 100;
+
+
+//#if DISP_W >= 1600
+
+
+	int		iStarDiv = 1000;
+	int		iStarDivMax = 10000;
+	double	StarDiv = (double)iStarDiv / (double)1000.0;
+
+	int		iStarDivBs = 1000;
+	int		iStarDivBsMax = 10000;
+	double	StarDivBs = (double)iStarDiv / (double)1000.0;
+
+	int		iedge = 1500;
 	int		iedgemax = 3000;
 	int		fedge = (double)iedge / 1000;
 
-	int		iedgedilate = 0;
+	int		ifmin = 38;
+	int		ifminmax = 1000;
+	double	fmin = (double)ifmin / (double)ifminmax;
+	
+	int		iedgedilate = 3;
 	int		iedgedilatemax = 15;
 
+/*#else
 
+
+	int		iStarDiv = 1000;
+	int		iStarDivMax = 10000;
+	double	StarDiv = (double)iStarDiv / (double)1000.0;
+
+	int		iStarDivBs = 1000;
+	int		iStarDivBsMax = 10000;
+	double	StarDivBs = (double)iStarDiv / (double)1000.0;
+
+	int		iedge = 1500;
+	int		iedgemax = 3000;
+	int		fedge = (double)iedge / 1000;
+
+	int		ifmin = 38;
+	int		ifminmax = 1000;
+	double	fmin = (double)ifmin / (double)ifminmax;
+	
+
+	int		iedgedilate = 3;
+	int		iedgedilatemax = 15;
+#endif
+*/
+
+
+	Mat dstmask( src.size(), CV_8UC1, Scalar(0) );
+	Mat	dstHoleSTAR( src.size(), CV_32FC3, Scalar(0) );
+	Mat	dstEdge1( src.size(), CV_32FC3, Scalar(0) );
+	Mat	dstEdge2( src.size(), CV_32FC3, Scalar(0) );
+	Mat dstHole1( src.size(), CV_32FC3, Scalar(0) );
+	Mat dstHole2( src.size(), CV_32FC3, Scalar(0) );
+	Mat dstHole3( src.size(), CV_32FC3, Scalar(0) );
+	Mat dstIsHole( src.size(), CV_8UC1, Scalar(0) );
+	//Mat dstRes( src.size(), CV_32FC3, Scalar(0) );
+	Mat	dstResAvg1( src.size(), CV_32FC3, Scalar(0) );
+	Mat	dstResAvg( src.size(), CV_32FC3, Scalar(0) );
+
+
+
+	inproc = 1;
 	for( ; ; ) {
 
 		//	Alap gain minden elott
-		createTrackbar("gain", "Csuszkak", &igain, igainmax, on_trackbar);
+		//createTrackbar("gain", "Csuszkak", &igain, igainmax, on_trackbar);
 		gain = (double)igain / (double)1000.0;
 
-		//	A nagy csillagokta a threshold erteke
-		createTrackbar("STAR Thres", "Csuszkak", &ithresval, ithresvalmax, on_trackbar);
-		thresval = (double)ithresval / (double)1000.0;
-
-		//createTrackbar("thresmul", "Csuszkak", &ithresmul, ithresmulmax, on_trackbar);
-		//thresmul = (double)(ithresmul + 1000.0) / (double)1000.0;
-
 		//	A "gorbezes" szorzoja elott egy alapertek kivonas
-		createTrackbar("ValSub", "Csuszkak", &ifsub, ifsubmax, on_trackbar);
+		createTrackbar("- Hatter", "Csuszkak", &ifsub, ifsubmax, on_trackbar);
 		fsub = (double)ifsub/1000.0;
 
 		//	A "gorbezeshez" egy szorzo
-		createTrackbar("ValMul", "Csuszkak", &ifmul, ifmulmax, on_trackbar);
+		createTrackbar("* Fenyero", "Csuszkak", &ifmul, ifmulmax, on_trackbar);
 		fmul = (double)ifmul/1000.0;
+
+		//	A nagy csillagokta a threshold erteke
+		createTrackbar("STAR vagas", "Csuszkak", &ithresval, ithresvalmax, on_trackbar);
+		thresval = (double)ithresval / (double)1000.0;
+		//thresval = (double)(ithresvalmax - ithresval) / (double)1000.0;
 
 		//	A nagyobb csillagok maszkjat ennyi pixellel noveljuk
 		//	Megteveszto a neve, mert egy negativ maszkkal dolgozom itt eloszor
 		//	Konnyen atirhato
-		createTrackbar("STAR Dlte", "Csuszkak", &ierode, ierodemax, on_trackbar);
+		createTrackbar("STAR kitrj", "Csuszkak", &ierode, ierodemax, on_trackbar);
 		//	A kovetkezo lepes az lenne, hogy kikeressuk a tenyleg nagy csillagok blobjat es
 		//	azokra egy kulon nagyobb dilate legyen kiadhato, mert most a kozepes csillagok maszkaja 
 		//	tul sokkal no, alig marad a kornyezetben helyettesitoertek
 
+		static	int iDoProc = 0;
+		if( !inproc ) {
+			iDoProc = 0;
+		}
+		createTrackbar("Csinald!", "Csuszkak", &iDoProc, 1, on_trackbar);
+
+
+
+		//createTrackbar("STAR DivBs", "Csuszkak", &iStarDivBs, iStarDivBsMax, on_trackbar);
+		//if( !iStarDivBs ) {
+		//	StarDivBs = 1;
+		//}
+
+		//createTrackbar("STAR DivBs", "Csuszkak", &iStarDivBs, iStarDivBsMax, on_trackbar);
+		//if( !iStarDivBs ) {
+		//	StarDivBs = 1;
+		//}
+		//createTrackbar("STAR Div", "Csuszkak", &iStarDiv, iStarDivMax, on_trackbar);
+		//if( !iStarDiv ) {
+		//	iStarDiv = 1;
+		//}
+		//StarDiv = (double)iStarDiv / (double)1000.0;
+
+
+
 		//	A kisebb csillagokat "elkeresessel" talaljuk meg. 
 		//	Az fedge erteke 1.0 es 2.0 kozott a legjobb
-		createTrackbar("star edge", "Csuszkak", &iedge, iedgemax, on_trackbar);
+		createTrackbar("star elek", "Csuszkak", &iedge, iedgemax, on_trackbar);
 		fedge = (double)iedge/1000.0;
 
+		//	A kisebb csillagokat "elkeresessel" talaljuk meg. 
+		//	Az fedge erteke 1.0 es 2.0 kozott a legjobb
+		createTrackbar("star vagas", "Csuszkak", &ifmin, ifminmax, on_trackbar);
+		fmin = (double)ifmin / (double)ifminmax;
+
 		//	A kisebb csillagok is haloval terheltek, noveljuk a maszkjukat
-		createTrackbar("star dlte", "Csuszkak", &iedgedilate, iedgedilatemax, on_trackbar);
+		createTrackbar("star kitrj", "Csuszkak", &iedgedilate, iedgedilatemax, on_trackbar);
 
 
 
-		dst = dst0.clone();
-		dst2 = src.clone();
-		Mat	dst0 = dst.clone();
-		dst = dst * gain;
+		//	A fenyerot elore beallithatjuk
+		dst = gain * fmul * ( dst0 - fsub );
 
 
-		Mat	dstmask = dst.clone();
-		starMaskTresh( dst, dst, dstmask, thresval, 1, fmul, fsub );
 
+		//dstmask.zeros(dst.rows, dst.cols, CV_8UC1 );
+		//if( ierode ) {
+		//	erode( dstmask, dstmask, getStructuringElement( MORPH_ELLIPSE, Size(ierode, ierode) ) );
+		//}
 
-		//
-		//	EDGE
-		//	A kis csillagokat nem sima thresholddal tuntetjuk el, 
-		//	hanem a (kep - gauss) > szam alapjan
-		//
-		Mat	dst3;
-		Mat	dstEdge;
-		Mat dstHole = dst.clone();// = dstmask * dst;
-
-		Mat dstIsHole( dst.size(), CV_32FC3);
-		dstIsHole.zeros(dst.rows, dst.cols, CV_32FC3 );
-
-
-		GaussianBlur( dst , dst3, cv::Size(0, 0), 3 );
-		addWeighted( dst, fedge, dst3, -fedge, 0, dstEdge );
-		if( iedgedilate ) {
-			dilate( dstEdge, dstEdge, getStructuringElement( MORPH_ELLIPSE, Size(iedgedilate, iedgedilate) ) );
+		if( ithresval ) {
+			starMaskTresh( dst0, dstmask, thresval );
 		}
-		double	fmin = 0.05;
-		if( 1 ) {
-			for (int i = 0; i < dstEdge.cols; i++) {
-				for (int j = 0; j < dstEdge.rows - 0; j++) {
-					Vec3f  intensity = dstEdge.at<Vec3f>(j, i);
-					Vec3f  intensity_dst = dst.at<Vec3f>(j, i);
-					if( intensity.val[0] > fmin  ||  intensity.val[1] > fmin  ||  intensity.val[2]  > fmin ) {
-						dstEdge.at<Vec3f>(j, i) = {1,1,1};
-						dstHole.at<Vec3f>(j, i) = {0,0,0};
-						//dstIsHole.at<Vec3f>(j, i) = {1,1,1};
-						dstIsHole.at<Vec3f>(j, i)[0] = 1.0;
-						dstIsHole.at<Vec3f>(j, i)[1] = 1.0;
-						dstIsHole.at<Vec3f>(j, i)[2] = 1.0;
-					} else {
-						dstEdge.at<Vec3f>(j, i) = {0,0,0};
-						//dstHole.at<Vec3f>(j, i) = intensity_dst;
-						dstIsHole.at<Vec3f>(j, i)[0] = 0.0;
-						dstIsHole.at<Vec3f>(j, i)[1] = 0.0;
-						dstIsHole.at<Vec3f>(j, i)[2] = 0.0;
-
-					}
-				}
+		if( !iDoProc ) {
+			if( ierode ) {
+				erode( dstmask, dstmask, getStructuringElement( MORPH_ELLIPSE, Size(ierode, ierode) ) );
 			}
 		}
+		bitwise_not( dstmask, dstmask );
+		mul8Ux3FC( dstmask, dst, dstHoleSTAR );
 
+
+
+		if( inproc && iDoProc) {
+			inproc = 0;
+			//iDoProc = 0;
+
+
+
+
+
+			//	https://docs.opencv.org/3.4/de/d01/samples_2cpp_2connected_components_8cpp-example.html
+			Mat	dstBlob( dst.size(), CV_8UC1, Scalar(0) );
+			Mat1i	labelImage, stats;
+			if( 1 ) {
+#define		SIZETMB	400
+				Mat dstmask_loc;// = ResizeProperSize(dstmask, SIZETMB);
+				//resize(dstmask, dstmask_loc, Size(SIZETMB, SIZETMB));	//	meretezes
+				dstmask_loc = ResizeProperSize(dstmask, SIZETMB);
+
+
+				//	https://docs.opencv.org/3.4/de/d01/samples_2cpp_2connected_components_8cpp-example.html
+				//Mat	labelImage;
+				Mat1i	stats;
+				if( 1 ) {
+					Mat		centroids;
+					int nLabels = connectedComponentsWithStats( dstmask_loc, labelImage, stats, centroids);
+					//dstBlob = labelImage.clone();
+
+					static	int	ilabel = 0;
+					ilabel++;
+					ilabel = ilabel % nLabels + 1;
+					for( int ilabel = 0; ilabel < nLabels; ilabel++ ) {
+						Mat1i dstblob1;// = labelImage.clone();
+
+						//inRange( labelImage, ilabel, ilabel, dstblob1 );
+						//dstblob1 /= ilabel;
+						dstblob1 = labelImage - ilabel;
+						dstblob1 = dstblob1 / dstblob1;
+						dstblob1 = 1 - dstblob1;
+						dstblob1 = 256 * dstblob1;
+
+						Mat dstblob2( dst.size(), CV_8UC1, Scalar(0) );
+						dstblob2 = Mat( dstblob1 );
+						dstblob1.convertTo( dstblob2, CV_8UC1 );
+						if( ierode ) {
+							int		area = stats[ ilabel ][ CC_STAT_AREA ];
+							if( area < 200 ) {
+								//int ierodemul = ((double)SIZETMB/(double)DISP_W)*(double)( (double)ierode * pow( (double)area, 0.4 )/1.0 )+1.0;
+								int ierodemul = ((double)SIZETMB/(double)DISP_W)*(double)( (double)ierode * pow( (double)area, 0.6 )/1.0 );
+								dilate( dstblob2, dstblob2, getStructuringElement( MORPH_ELLIPSE, Size(ierodemul, ierodemul) ) );
+								bitwise_or( dstmask_loc, dstblob2, dstmask_loc );
+							}
+						}
+					}
+					//dstmask = dstBlob;
+					//dstmask = ResizeProperSize(dstmask_loc, DISP_W);
+					resize(dstmask_loc, dstmask, dst.size() );	//	meretezes
+
+				}
+			} else {
+				if( 1 && ierode ) {
+					//erode( dstmask, dstmask, getStructuringElement( MORPH_ELLIPSE, Size(ierode, ierode) ) );
+					dilate( dstmask, dstmask, getStructuringElement( MORPH_ELLIPSE, Size(ierode, ierode) ) );
+				}
+			}
+
+
+			//
+			//	EDGE
+			//	A kis csillagokat nem sima thresholddal tuntetjuk el, 
+			//	hanem a (kep - gauss) > szam alapjan
+			//
+			Mat	dst3;
+			dstEdge1.zeros(dst.rows, dst.cols, CV_32FC3 );
+			dstEdge2.zeros(dst.rows, dst.cols, CV_32FC3 );
+			dstHole1 = dst.clone();
+			dstHole2 = dst.clone();
+			dstIsHole.zeros(dst.rows, dst.cols, CV_8UC1 );
+
+//@@@
+			if( 1 ) {
+				if( 0 ) {
+					removeLittleStars( dst       , fedge, fmin, iedgedilate, dstResAvg , dstEdge1, dstHole1, dstHole3, dstIsHole );
+				} else {
+					removeLittleStars( dst       , fedge, fmin,           0, dstResAvg1, dstEdge1, dstHole1, dstHole2, dstIsHole );
+					removeLittleStars( dstResAvg1, fedge, fmin, iedgedilate, dstResAvg , dstEdge2, dstHole2, dstHole3, dstIsHole );
+				}
+			} else {
+				GaussianBlur( dst , dst3, cv::Size(0, 0), 3 );
+				addWeighted( dst, fedge, dst3, -fedge, 0, dstEdge1 );
+
+				// Betomjuk a legkisebb lyukakat, hogy a dilate uan sok jo 
+				//	ixel legyen
+				//thresh3FC32To8UC1( dstEdge1, fmin, dstIsHole, dstHole1 );
+				//replaceHole( dstHole1, dstIsHole, dstHole2, 1 );
+
+				Mat	dstEdge8b;//( src.size(), CV_32FC3, Scalar(0) );
+				if( iedgedilate ) {
+					dilate( dstEdge1, dstEdge2, getStructuringElement( MORPH_ELLIPSE, Size(iedgedilate, iedgedilate) ) );
+					//dstEdge1.convertTo( dstEdge8b, CV_8UC1);
+					//dstEdge2.convertTo( dstEdge2, CV_8UC3);
+					//cvtColor( dstEdge2, dstEdge2, COLOR_BGR2GRAY );
+					//dstEdge2.convertTo( dstEdge2, CV_8UC1);
+					//dstEdge2 /= dstEdge2;
+					//dstEdge2 *= 255;
+				}
+
+				if( 0 ) {
+					thresh3FC32To8UC1( dstEdge2, fmin, dstIsHole, dstHole2 );
+					replaceHole( dstHole2, dstIsHole, dstHole3, 1 );
+					dstIsHole.zeros(dst.rows, dst.cols, CV_32FC3 );
+				} else {
+					for (int i = 0; i < dstEdge2.cols; i++) {
+						for (int j = 0; j < dstEdge2.rows - 0; j++) {
+							Vec3f  intensity = dstEdge2.at<Vec3f>(j, i);
+							Vec3f  intensity_dst = dst.at<Vec3f>(j, i);
+							if( intensity.val[0] > fmin  ||  intensity.val[1] > fmin  ||  intensity.val[2]  > fmin ) {
+								dstHole1.at<Vec3f>(j, i) = {0,0,0};
+								dstIsHole.at<uchar>(j, i) = 255;
+							} else {
+								dstIsHole.at<uchar>(j, i) = 0;
+							}
+						}
+					}
+					dstHole2 = dstHole1.clone();
+					dstResAvg = dstHole1.clone();
+
+					replaceHole( dstHole1, dstIsHole, dstResAvg, 1 );
+					dstIsHole.zeros(dst.rows, dst.cols, CV_32FC3 );
+					dstHole3 = dstResAvg.clone();
+
+				}
+			}
 		
 
-		if( ierode ) {
-			erode( dstmask, dstmask, getStructuringElement( MORPH_ELLIPSE, Size(ierode, ierode) ) );
-		}
-		if( 1 ) {
-			for (int i = 0; i < dst.cols; i++) {
-				for (int j = 0; j < dst.rows - 0; j++) {
-					Vec3f  intensity_mask = dstmask.at<Vec3f>(j, i);
-					Vec3f  intensity_dst = dst.at<Vec3f>(j, i);
-					if( intensity_mask.val[0]  &&  intensity_mask.val[1] && intensity_mask.val[2] ) {
-					} else {
-						dstHole.at<Vec3f>(j, i) = {0,0,0};
-						//dstIsHole.at<Vec3f>(j, i) = {1,1,1};
-						dstIsHole.at<Vec3f>(j, i)[0] = 1.0;
-						dstIsHole.at<Vec3f>(j, i)[1] = 1.0;
-						dstIsHole.at<Vec3f>(j, i)[2] = 1.0;
-						float cc = dstIsHole.at<Vec3f>(j, i)[0];
-						printf("");
-					}			
-				}
-			}
-		}
-		dstmask = 1 - dstmask;
-		cvtColor( dstmask, dstmask, COLOR_BGR2GRAY );
-
-
-		//	Egy konturt kepzek a csillagok korul, ez lesz a legkozelebbi ertek, amivel helyettesiteni
-		//	lehet.
-		//	Csillagkicsinyiternel ez a kontur (csak erode-dal elott) lesz az a maszk, aminek az erteket
-		//	a kornyezettel kell lecserelni
-		Mat dstIsHoleDilate = dstIsHole.clone();
-		dilate( dstIsHoleDilate, dstIsHoleDilate, getStructuringElement( MORPH_ELLIPSE, Size(5, 5) ) );
-		Mat dstIsHoleContour( dst.size(), CV_32FC3);
-		dstIsHoleContour.zeros(dst.rows, dst.cols, CV_32FC3 );
-		bitwise_xor( dstIsHole, dstIsHoleDilate, dstIsHoleContour );
-		if( 1 ) {
-			for (int i = 0; i < dst.cols; i++) {
-				for (int j = 0; j < dst.rows - 0; j++) {
-					Vec3f  intensity_HoleC = dstIsHoleContour.at<Vec3f>(j, i);
-					Vec3f  intensity_dst = dst.at<Vec3f>(j, i);
-					if( intensity_HoleC.val[0]  ||  intensity_HoleC.val[1] || intensity_HoleC.val[2] ) {
-						dstIsHoleContour.at<Vec3f>(j, i) = intensity_dst;
+			//	A hole-ra rakjuk a nagy csillagokat
+			if( 1 ) {
+				dstIsHole.zeros(src.rows, src.cols, CV_32FC3 );
+				for (int i = 0; i < dst.cols; i++) {
+					for (int j = 0; j < dst.rows - 0; j++) {
+						uchar  intensity_mask = dstmask.at<uchar>(j, i);
+						Vec3f  intensity_dst = dst.at<Vec3f>(j, i);
+						if( !intensity_mask ) {
+							//printf("");
+							dstIsHole.at<uchar>(j, i) = 0;
+						} else {
+							dstHole3.at<Vec3f>(j, i) = {0,0,0};
+							dstIsHole.at<uchar>(j, i) = 255;
+						}			
 					}
 				}
 			}
+			if( 1 ) {
+				//del3FC32Where8UC1is0( dstmask, dstHole3, dstIsHole );
+				//thresh3FC32To8UC1( dstEdge2, fmin, dstIsHole, dstHole2 );
+				//replaceHole( dstHole2, dstIsHole, dstHole3, 1 );
+			}
+
+
+			if( 0 ) {
+				for (int i = 0; i < dst.cols; i++) {
+					for (int j = 0; j < dst.rows - 0; j++) {
+						uchar  intensity_mask = dstmask.at<uchar>(j, i);
+						Vec3f  intensity_dst = dst.at<Vec3f>(j, i);
+						if( !intensity_mask ) {
+						} else {
+							dstHole3.at<Vec3f>(j, i)[ 0 ] = (intensity_dst.val[0]-fsub) / StarDiv + fsub;
+							dstHole3.at<Vec3f>(j, i)[ 1 ] = (intensity_dst.val[1]-fsub) / StarDiv + fsub;
+							dstHole3.at<Vec3f>(j, i)[ 2 ] = (intensity_dst.val[0]-fsub) / StarDiv + fsub;
+						}			
+					}
+				}
+			}
+
+
+
+			//cvtColor( dstmask, dstmask, COLOR_BGR2GRAY );
+
+
+			//	Egy konturt kepzek a csillagok korul, ez lesz a legkozelebbi ertek, amivel helyettesiteni
+			//	lehet.
+			//	Csillagkicsinyiternel ez a kontur (csak erode-dal elott) lesz az a maszk, aminek az erteket
+			//	a kornyezettel kell lecserelni
+			Mat dstIsHoleDilate = dstIsHole.clone();
+			//Mat dstIsHoleContour( dst.size(), CV_32FC3);
+			Mat dstIsHoleContour( dst.size(), CV_8UC1);			
+			if( 0 ) {
+				dilate( dstIsHoleDilate, dstIsHoleDilate, getStructuringElement( MORPH_ELLIPSE, Size(5, 5) ) );
+				dstIsHoleContour.zeros(dst.rows, dst.cols, CV_32FC3 );
+				bitwise_xor( dstIsHole, dstIsHoleDilate, dstIsHoleContour );
+				for (int i = 0; i < dst.cols; i++) {
+					for (int j = 0; j < dst.rows - 0; j++) {
+						Vec3f  intensity_HoleC = dstIsHoleContour.at<Vec3f>(j, i);
+						Vec3f  intensity_dst = dst.at<Vec3f>(j, i);
+						if( intensity_HoleC.val[0]  ||  intensity_HoleC.val[1] || intensity_HoleC.val[2] ) {
+							dstIsHoleContour.at<Vec3f>(j, i) = intensity_dst;
+						}
+					}
+				}
+			}
+
+	//
+	//        .....
+	//       .     .
+	//      . +     .
+	//     .         .
+	//     .       + .
+	//     .    +    .
+	//      .       .
+	//       .     .
+	//        .....
+	//
+	//	Minden pontot az x es az y koordinatajan levo legkozelebbi pontok tavolsagaryanos 
+	//	szinertek atlagakent hatarozunk meg.
+	//	Vagy ugyanez, de csak hsv[v] atlagot allitunk be, igy a szine megmarad, csak a 
+	//	csillagmagon kivul az eredetileg beszurodo szine marad meg.
+	//	Ezeket blobokkent keressuk a dstHole layeren.
+	//
+	//	Jobb megoldas lenne, ha nem a kereszt alaku pontokat vennem, hanem az osszes legkozelebbi
+	//	pont tavolsagaranyos atlagat, de az joval lassabb es meg nem is tartok ott.
+
+			dstResAvg = dstHole3.clone();
+			if( 1 ) {
+				//replaceHole( dstHole, dstIsHole, dstRes, 0 );
+				replaceHole( dstHole3, dstIsHole, dstResAvg, 1 );
+				//replaceHole( dstHole, dstIsHole, dstResAvg, 0 );
+			}
+			//double min, max;
+			//minMaxLoc( dstEdge1, &min, &max );
+			//if( min)
+			//dstEdge1 = 
+			//dstResAvg = dstResAvg + dstEdge1;
+
+
+
+	//	PARABOLOID
+	//	https://math.stackexchange.com/questions/2010758/how-do-i-fit-a-paraboloid-surface-to-nine-points-and-find-the-minimum
+	//	Hatterszint valasztunk tobb helyen a gradienssel es 
+	//	paraboloidot illesztunk ra. A paraboloid erteke lesz a szorzo, 
+	//	amivel osztjuk az eredeti keppont szineket.
+	//	Lehet, hogy ekkor mar a whitebalance nem is kell.
+	//	CSILLAGSZINEK
+	//	Valahogy vissza kellene csempeszni az eredeti csillagokat az eredeti szinukkel is?
+
+
+
 		}
 
-//
-//        .....
-//       .     .
-//      . +     .
-//     .         .
-//     .       + .
-//     .    +    .
-//      .       .
-//       .     .
-//        .....
-//
-//	Minden pontot az x es az y koordinatajan levo legkozelebbi pontok tavolsagaryanos 
-//	szinertek atlagakent hatarozunk meg.
-//	Vagy ugyanez, de csak hsv[v] atlagot allitunk be, igy a szine megmarad, csak a 
-//	csillagmagon kivul az eredetileg beszurodo szine marad meg.
-//	Ezeket blobokkent keressuk a dstHole layeren.
-//
-//	Jobb megoldas lenne, ha nem a kereszt alaku pontokat vennem, hanem az osszes legkozelebbi
-//	pont tavolsagaranyos atlagat, de az joval lassabb es meg nem is tartok ott.
-
-		Mat dstRes = dstHole.clone();
-		Mat	dstResAvg = dstHole.clone();
-		replaceHole( dstHole, dstIsHole, dstRes, 0 );
-		replaceHole( dstHole, dstIsHole, dstResAvg, 1 );
 
 
-//	PARABOLOID
-//	Hatterszint valasztunk tobb helyen a gradienssel es 
-//	paraboloidot illesztunk ra. A paraboloid erteke lesz a szorzo, 
-//	amivel osztjuk az eredeti keppont szineket.
-//	Lehet, hogy ekkor mar a whitebalance nem is kell.
-//	CSILLAGSZINEK
-//	Valahogy vissza kellene csempeszni az eredeti csillagokat az eredeti szinukkel is?
+		//imshow("src", src );
+		imshow("1. Elokeszitett(dst)", dst );
+		//imshow("dstmask", dstmask );
+		imshow("2. Nagy csillagokra lyukak, elozetes (dstHoleSTAR)", dstHoleSTAR );
+		if( iDoProc ) {
+			//imshow("dstEdge1", dstEdge1 );
+			//imshow("dstEdge2", dstEdge2 );
+			imshow("3. Kis csillagokra lyukak (dstHole1)", dstHole1 );
+			imshow("4. Kis csillagokra lyukak (dstHole2)", dstHole2 );
+			//imshow("dstHole2", dstHole2 );
+			imshow("5. Nagy csillagokra lyukak, vegleges (dstHole3)", dstHole3 );
+			//imshow("dstIsHole", dstIsHole );
+			//imshow("dstIsHoleDilate", dstIsHoleDilate );
+			//imshow("dstIsHoleContour", dstIsHoleContour );
+			//imshow("dstDilate", dstDilate );
+			//imshow("dstRes", dstRes );
+			//imshow("labelImage", labelImage );
+			//imshow("dstBlob", dstBlob );
 
 
-
-		imshow("src", src );
-		imshow("dst", dst );
-		imshow("dstmask", dstmask );
-		imshow("dstHole", dstHole );
-		imshow("dstIsHole", dstIsHole );
-		//imshow("dstIsHoleDilate", dstIsHoleDilate );
-		imshow("dstIsHoleContour", dstIsHoleContour );
-		//imshow("dstDilate", dstDilate );
-		imshow("dstRes", dstRes );
-		imshow("dstResAvg", dstResAvg );
+			//imshow("dstResAvg1", dstResAvg1 );
+			imshow("6. Kesz kep (dstResAvg)", dstResAvg );
+		}
 		
 		if ((ret = waitKey(30)) >= 0) {
 			if (ret == 27) {
 				return 0;
 			}
 		}
-
 	}
 
 return 0;
@@ -2697,7 +3127,7 @@ return 0;
 *   return:
 *
 ***************************************************************************************/
-int main()
+int main( int argc, char *argv[] )
 {
 	int		ret = 0;
 	int		rot = 0;
@@ -2781,6 +3211,7 @@ int main()
 	//char fileName[100] = VPATH"AutoRGBAlign001.TIF"; rot = 0;
 	//char fileName[100] = VPATH"20200414_0415_NothAmerica_Pont.png"; rot = 0;
 	//char fileName[100] = VPATH"20200414_0415_NothAmerica_Pont.tif"; rot = 0;
+	//char fileName[100] = VPATH"NorthAmerica1Frame.jpg"; rot = 0;
 	//char fileName[100] = VPATH"20200820_Bp_Adnromeda2.tif"; rot = 0;
 	//char fileName[100] = VPATH"20200820_Bp_Triangulum1.tif"; rot = 0;
 	//char fileName[100] = VPATH"20211028_Mc_Soul_200mm_LDFB3_485min.tif"; rot = 0;
@@ -2788,7 +3219,55 @@ int main()
 	//char fileName[100] = VPATH"20211028_Mc_FlamingStar_200mm_LDFB2_4h03m.tif"; rot = 0;
 	//char fileName[100] = VPATH"20211028_Mc_Pacman_200mm_LDFB_1h12m.tif"; rot = 0;
 	//char fileName[100] = VPATH"20211008_Elephant300mm35min.tif"; rot = 0;
-	char fileName[100] = VPATH"20211002_Mc_California_LDFB_1h17_01.tif"; rot = 0;
+	//char fileName[100] = VPATH"20211002_Mc_California_LDFB_1h17_01.tif"; rot = 0;
+	//char fileName[100] = VPATH"20200812_Mc_Veil2.tif"; rot = 0;
+	//char fileName[100] = VPATH"2020022_0423_Crescent_pont.tif"; rot = 0;
+	//char fileName[100] = VPATH"Crescent_20200521_0608_Bp_Crescent_LDF.tif"; rot = 0;
+	//char fileName[100] = VPATH"20200627_Lagoon(200f4f56)LD.tif"; rot = 0;
+	//char fileName[100] = VPATH"Cygnus_50mm.tif"; rot = 0;
+	//char fileName[100] = VPATH"20200812_Mc_Dumbbell.tif"; rot = 0;
+	//char fileName[100] = VPATH"OmegaNebula.tif"; rot = 0;
+	//char fileName[100] = VPATH"NorthAmerica_50mm.tif"; rot = 0;
+	//char fileName[100] = VPATH"ElephantMcHortobagy_DSS06.tif"; rot = 0;
+	//char fileName[100] = VPATH"20211002_Mc_ngc7822_1h21_01.tif"; rot = 0;
+	//char fileName[100] = VPATH"20200403_Sadr.tif"; rot = 0;
+	//char fileName[100] = VPATH"Orion300sec.tif"; rot = 0;
+	//char fileName[100] = VPATH"Autosave_LEO.tif"; rot = 0;
+	//char fileName[100] = VPATH"Autosave001_Whirlpool.tif"; rot = 0;
+	//char fileName[100] = VPATH"Autosave002_Pinwheel.tif"; rot = 0;
+	//char fileName[100] = VPATH"20200327_Pinwheel_Allin.tif"; rot = 0;
+	//char fileName[100] = VPATH"20200327_Iris_2.tif"; rot = 0;
+	//char fileName[100] = VPATH"Whirlpool_Pont_20200315&18&19.tif"; rot = 0;
+//	//char fileName[100] = VPATH"20200411_M106all.tif"; rot = 0;
+	//char fileName[100] = VPATH"20200327_0410_0411_0414_Pinwheel_Pont.tif"; rot = 0;
+	//char fileName[100] = VPATH"20200608_Bp_ngc7129.tif"; rot = 0;
+	//char fileName[100] = VPATH"20200812_Mc_MW.tif"; rot = 0;
+	char fileName[100] = VPATH"20200819_20211002_Cailif_2h24m.tif"; rot = 0;
+	
+
+
+	
+	
+	//char fileName[100];
+	//f:/nagy4/__C_Mintak/cvStar2/cvStar2/Crescent_20200521_0608_Bp_Crescent_LDF.tif
+	if( argc > 1 ) {
+		strcpy( fileName, argv[1]);
+		printf( "\nFilename: %s", fileName);
+	}
+	if( argc > 2 ) {
+		char		szDISP_W[ 32 ];
+		strcpy( szDISP_W, argv[2]);
+		//disp_w = atoi( szDISP_W );
+		DISP_W = atoi( szDISP_W );
+		//printf( "\nFelbontas: %d", disp_w);
+		printf( "\nFelbontas: %d", DISP_W);
+	}
+	
+	
+	
+	
+	
+	
 
 	
 	
@@ -2833,7 +3312,7 @@ free( pszTxt );
 		cv_16UNormalization(fileName, rot);
 	}
 	if (1) {
-		cv_16UNormalization2(fileName, rot);
+		reduceStars(fileName, rot);
 	}
 	return 0;
 }
