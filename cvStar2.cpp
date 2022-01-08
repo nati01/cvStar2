@@ -3,6 +3,7 @@
 
 #include "stdafx.h"
 
+#include	<string>
 
 #define	__HOME__
 #ifdef  __HOME__
@@ -10,6 +11,9 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+
+#include <opencv2/photo.hpp>
+
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/features2d.hpp>
 
@@ -38,6 +42,7 @@
 #pragma comment(lib, "opencv_core310d.lib")   
 #pragma comment(lib, "opencv_highgui310d.lib")   
 #pragma comment(lib, "opencv_imgproc310d.lib")   
+#pragma comment(lib, "opencv_photo310d.lib")   
 //#pragma comment(lib, "opencv_objdetect310d.lib") //HOGDescriptor
 //#pragma comment(lib, "opencv_ml310d.lib")
 
@@ -79,26 +84,36 @@ using namespace std;
 
 #endif
 
-
+#include	"linreg.h"
 
 #define		VPATH		"f:/nagy4/__C_Mintak/cvStar2/cvStar2/"
 
+//#define		DISP_WW		40
 //#define		DISP_WW		300
 //#define		DISP_WW		450
 //#define		DISP_WW		600
 //#define		DISP_WW		800
 //#define		DISP_WW		950
-//#define		DISP_WW		1100
+#define		DISP_WW		1100
 //#define		DISP_WW		1300
-#define		DISP_WW		1400
+//#define		DISP_WW		1400
 //#define		DISP_WW		1600
+//#define		DISP_WW		1800
 //#define		DISP_WW		2400
 //#define		DISP_WW		4000
 //#define		DISP_WW		100
 
+int		DISP_W2	 = 1100;
 //int	disp_w = DISP_WW;
 int	DISP_W = DISP_WW;
 double sss;
+
+typedef struct T_ACTION {
+	Point2d	pt;
+	int		event;
+	int		flag;
+} ACTION;
+ACTION	act;
 
 /***************************************************************************************
 *
@@ -1719,7 +1734,6 @@ int cv_16UNormalization(char *fileName, int rot)
 
 	int		imtype = CV_32FC3;
 	//int		imtype = CV_8UC3;
-	Mat		canvas;
 
 	Mat	mgombsor(400, 400, CV_8UC3, Scalar(64, 0, 0));
 	Rect buttonCrop = Rect(0, 0, 100, 40);
@@ -1735,7 +1749,6 @@ int cv_16UNormalization(char *fileName, int rot)
 	namedWindow("Csuszkak", WINDOW_NORMAL);
 	resizeWindow("Csuszkak", 600, 600);
 
-	//canvas
 
 	//src = imread( fileName, CV_LOAD_IMAGE_GRAYSCALE );
 	//src = imread( fileName, IMREAD_GRAYSCALE  );
@@ -2074,6 +2087,50 @@ return 0;
 }
 /***************************************************************************************
 *
+*   function:		get3x3Avegrage
+*   arguments:
+*	description:	
+*	globals:
+*	side effect:
+*   return:
+*
+***************************************************************************************/
+int get3x3Avegrage( Mat src, int x, int y, Vec3f &intensity ) {
+	Vec3f	intensity_tmp0;
+	Vec3f	intensity_tmp1;
+	int		tmp0; 
+	int		isav = 6;
+
+	intensity.val[0] = 0;
+	intensity.val[1] = 0;
+	intensity.val[2] = 0;
+
+	tmp0 = 0;
+	for( int i = max(0,x-isav); i < min( x+isav, src.cols); i++ ) {
+		for( int j = max(0,y-isav); j < min( y+isav, src.rows); j++ ) {
+			intensity_tmp0 = src.at<Vec3f>(j, i);
+			if( intensity_tmp0.val[0]  ||  intensity_tmp0.val[1] || intensity_tmp0.val[2] ) {
+				intensity_tmp1.val[ 0 ] = intensity_tmp1.val[ 0 ] + intensity_tmp0.val[ 0 ];
+				intensity_tmp1.val[ 1 ] = intensity_tmp1.val[ 1 ] + intensity_tmp0.val[ 1 ];
+				intensity_tmp1.val[ 2 ] = intensity_tmp1.val[ 2 ] + intensity_tmp0.val[ 2 ];
+				tmp0++;
+			}
+		}
+	}
+	if( tmp0 ) {
+		//intensity_tmp1 /= tmp0;
+		intensity.val[0] = intensity_tmp1.val[0] / (double)tmp0;
+		intensity.val[1] = intensity_tmp1.val[1] / (double)tmp0;
+		intensity.val[2] = intensity_tmp1.val[2] / (double)tmp0;
+	} else {
+	}
+	//intensity_x0 = src.at<Vec3f>(j, m);
+	if( intensity.val[0]  ||  intensity.val[1] || intensity.val[2] ) {
+		return tmp0;
+	}
+return 0;
+}/***************************************************************************************
+*
 *   function:		
 *   arguments:
 *	description:	
@@ -2170,64 +2227,58 @@ return 1;
 *   return:
 *
 ***************************************************************************************/
-/*int starMaskTresh( Mat src, Mat &dst, Mat &dstmask, double thresval, double thresmul, double fmul, double fsub )
+int whiteBalancePt( Mat src, Mat &dst, Point2i pt )
 {
-	for (int i = 0; i < src.cols; i++) {
-		for (int j = 0; j < src.rows - 0; j++) {
-			Vec3f  intensity = src.at<Vec3f>(j, i);
+	dst = src.clone();
+	//	WhiteBalance faktorok szamitasa
+	Vec3f  fact;
+	//Vec3f  intensity = src.at<Vec3f>(pt.y, pt.x);
+	Vec3f  intensity;
+	get3x3Avegrage( src, pt.x, pt.y, intensity );
+	float Red = (float)intensity.val[0];
+	float Green = (float)intensity.val[1];
+	float Blue = (float)intensity.val[2];
+	fact[0] = 0.0;
+	fact[1] = 0.0;
+	fact[2] = 0.0;
+	if( !(Red + Green + Blue)) {
+		fact[0] = 1.0;
+		fact[1] = 1.0;
+		fact[2] = 1.0;
+	}
+	//	A reszuk a teljes aranyaban
+	if( Red ) {
+		fact[0] = (Red + Green + Blue) / Red;
+	}
+	if( Green ) {
+		fact[1]	= (Red + Green + Blue) / Green;
+	}
+	if( Blue ) {
+		fact[2] =  (Red + Green + Blue) / Blue;
+	}
 
-			float Red = (float)intensity.val[0];
-			float Green = (float)intensity.val[1];
-			float Blue = (float)intensity.val[2];
 
-			//
-			//	MASK
-			//
-			if( thresval ) {
-				if( 
-					( Red > thresval 
-					|| Green > thresval 
-					|| Blue > thresval
-					)
-				//	Ezt nem tudtam mire hasznalni. A celja az lett volna, hogy az eles, egyszinu halokat
-				//	megtalaljam.
-				//	||
-				//	(   Red > thresmul * Green 
-				//	 || Red > thresmul * Blue
-				//	 || Green > thresmul * Red
-				//	 || Green > thresmul * Blue
-				//	 || Blue > thresmul * Red
-				//	 || Blue > thresmul * Green
-				//	) 
-				) {
-					//dstmask.at<Vec3f>(j, i) = {0,0,0};
-					dstmask.at<uchar>(j, i) = 0;
-				} else {
-					//dstmask.at<Vec3f>(j, i) = {1,1,1};
-					dstmask.at<uchar>(j, i) = 255;
-				}
+	//	WhiteBalance vegrahajtasa, kozben akkor mar megkeresem a minimum es 
+	//	maximum ertekeket (de ez nem szinkomponensenkent kellene csinalni valszeg) 
+	if( 1 ) {
+		for (int i = 0; i < dst.cols; i++) {
+			for (int j = 0; j < dst.rows - 0; j++) {
+				Vec3f  intensity = dst.at<Vec3f>(j, i);
+
+				float Red2 = fact[ 0 ] * (float)intensity.val[0];
+				float Green2 = fact[ 1 ] * (float)intensity.val[1];
+				float Blue2 = fact[ 2 ] * (float)intensity.val[2];
+
+				Vec3f  intensity2 = { Red2, Green2, Blue2 };
+
+				dst.at<Vec3f>(j, i) = intensity2;
 			}
-
-			//if( Red < fmax && Green < fmax && Blue < fmax   &&   Red < 1.1*Green && Red < 1.1*Blue) {
-			//if( Red + Green + Blue < 3 * fmax ) {
-				Red = fmul * ((float)intensity.val[0] - fsub);
-				Green = fmul * ((float)intensity.val[1]- fsub);
-				Blue = fmul * ((float)intensity.val[2] - fsub);
-			//} else {
-				if( 0 ) {
-					Red = 0;
-					Green = 0;
-					Blue = 0;
-				}
-			//}
-
-			Vec3f  intensity2 = { Red, Green, Blue };
-
-			dst.at<Vec3f>(j, i) = intensity2;
 		}
 	}
+
+
 return 1;
-}*/
+}
 /***************************************************************************************
 *
 *   function:		starMaskTresh
@@ -2240,78 +2291,37 @@ return 1;
 ***************************************************************************************/
 int starMaskTresh( Mat src, Mat &dstmask, double thresval )
 {
-	for (int i = 0; i < src.cols; i++) {
-		for (int j = 0; j < src.rows - 0; j++) {
-			Vec3f  intensity = src.at<Vec3f>(j, i);
+	if( 1 ) {
+		for (int i = 0; i < src.cols; i++) {
+			for (int j = 0; j < src.rows - 0; j++) {
+				Vec3f  intensity = src.at<Vec3f>(j, i);
 
-			float Red = (float)intensity.val[0];
-			float Green = (float)intensity.val[1];
-			float Blue = (float)intensity.val[2];
+				float Red = (float)intensity.val[0];
+				float Green = (float)intensity.val[1];
+				float Blue = (float)intensity.val[2];
 
-			//
-			//	MASK
-			//
-			if( thresval ) {
-				if( 
-					( Red > thresval 
-					|| Green > thresval 
-					|| Blue > thresval
-					)
-				) {
-					//dstmask.at<Vec3f>(j, i) = {0,0,0};
-					dstmask.at<uchar>(j, i) = 0;
-				} else {
-					//dstmask.at<Vec3f>(j, i) = {1,1,1};
-					dstmask.at<uchar>(j, i) = 255;
+				//
+				//	MASK
+				//
+				if( thresval ) {
+					if( 
+						( Red > thresval 
+						|| Green > thresval 
+						|| Blue > thresval
+						)
+					) {
+						//dstmask.at<Vec3f>(j, i) = {0,0,0};
+						dstmask.at<uchar>(j, i) = 0;
+					} else {
+						//dstmask.at<Vec3f>(j, i) = {1,1,1};
+						dstmask.at<uchar>(j, i) = 255;
+					}
 				}
 			}
 		}
+	} else {
 	}
 return 1;
-}
-/***************************************************************************************
-*
-*   function:		get3x3Avegrage
-*   arguments:
-*	description:	
-*	globals:
-*	side effect:
-*   return:
-*
-***************************************************************************************/
-int get3x3Avegrage( Mat src, int x, int y, Vec3f &intensity ) {
-	Vec3f	intensity_tmp0;
-	Vec3f	intensity_tmp1;
-	int		tmp0; 
-	int		isav = 4;
-
-	intensity.val[0] = 0;
-	intensity.val[1] = 0;
-	intensity.val[2] = 0;
-
-	tmp0 = 0;
-	for( int i = max(0,x-isav); i < min( x+isav, src.cols); i++ ) {
-		for( int j = max(0,y-isav); j < min( y+isav, src.rows); j++ ) {
-			intensity_tmp0 = src.at<Vec3f>(j, i);
-			if( intensity_tmp0.val[0]  ||  intensity_tmp0.val[1] || intensity_tmp0.val[2] ) {
-				intensity_tmp1.val[ 0 ] = intensity_tmp1.val[ 0 ] + intensity_tmp0.val[ 0 ];
-				intensity_tmp1.val[ 1 ] = intensity_tmp1.val[ 1 ] + intensity_tmp0.val[ 1 ];
-				intensity_tmp1.val[ 2 ] = intensity_tmp1.val[ 2 ] + intensity_tmp0.val[ 2 ];
-				tmp0++;
-			}
-		}
-	}
-	if( tmp0 ) {
-		//intensity_tmp1 /= tmp0;
-		intensity.val[0] = intensity_tmp1.val[0] / (double)tmp0;
-		intensity.val[1] = intensity_tmp1.val[1] / (double)tmp0;
-		intensity.val[2] = intensity_tmp1.val[2] / (double)tmp0;
-	}								
-	//intensity_x0 = src.at<Vec3f>(j, m);
-	if( intensity.val[0]  ||  intensity.val[1] || intensity.val[2] ) {
-		return tmp0;
-	}
-return 0;
 }
 /***************************************************************************************
 *
@@ -2530,7 +2540,40 @@ return 1;
 *   return:
 *
 ***************************************************************************************/
-int removeLittleStars( Mat src, float fedge, float fmin, int idilate, Mat &dst, Mat &dstEdge, Mat &dstHole1, Mat &dstHole2, Mat &dstIsHole )
+string type2str( Mat mat ) {
+	int type = mat.type();
+	string r;
+
+	uchar depth = type & CV_MAT_DEPTH_MASK;
+	uchar chans = 1 + (type >> CV_CN_SHIFT);
+
+	switch ( depth ) {
+    case CV_8U:  r = "8U"; break;
+    case CV_8S:  r = "8S"; break;
+    case CV_16U: r = "16U"; break;
+    case CV_16S: r = "16S"; break;
+    case CV_32S: r = "32S"; break;
+    case CV_32F: r = "32F"; break;
+    case CV_64F: r = "64F"; break;
+    default:     r = "User"; break;
+	}
+
+	r += "C";
+	r += (chans+'0');
+
+  return r;
+}
+/***************************************************************************************
+*
+*   function:		
+*   arguments:
+*	description:	
+*	globals:
+*	side effect:
+*   return:
+*
+***************************************************************************************/
+int removeLittleStars( Mat src, float fedge, float fmin, int idilate, Mat &dstRes, Mat &dstEdge, Mat &dstWHole, Mat &dstHole2, Mat &dstIsHole )
 {
 	Mat		dst3;
 
@@ -2541,25 +2584,239 @@ int removeLittleStars( Mat src, float fedge, float fmin, int idilate, Mat &dst, 
 		dilate( dstEdge, dstEdge, getStructuringElement( MORPH_ELLIPSE, Size(idilate, idilate) ) );
 	}
 
-	dstHole1 = src.clone();
+	dstWHole = src.clone();
+	if( 0 ) {
+		//dstIsHole.zeros(src.rows, src.cols, CV_32FC3 );
+		dstIsHole.zeros(src.rows, src.cols, CV_8UC1 );		
+		for (int i = 0; i < src.cols; i++) {
+			for (int j = 0; j < src.rows - 0; j++) {
+				Vec3f  intensity = dstEdge.at<Vec3f>(j, i);
+				if( intensity.val[0] > fmin  ||  intensity.val[1] > fmin  ||  intensity.val[2]  > fmin ) {
+					dstWHole.at<Vec3f>(j, i) = {0,0,0};
+					dstIsHole.at<uchar>(j, i) = 255;
+				} else {
+				}
+			}
+		}
+		dstHole2 = dstWHole.clone();
+		dstRes = dstWHole.clone();
+		//replaceHole( dstWHole, dstIsHole, dstRes, 1 );
+		dstHole2 = dstRes.clone();
+
+	} else {
+		Mat		chns[ 3 ];
+		Mat		hsv;
+		cvtColor( dstEdge, hsv, CV_BGR2HSV);
+		split( hsv, chns );
+		threshold( chns[ 2 ], dstIsHole, fmin, 255, CV_THRESH_BINARY );
+		dstIsHole.convertTo(dstIsHole, CV_8UC1, 255.0);
+
+//imshow( "kiscsilalg", dstIsHole );
+
+		dstRes = src.clone();
+		Mat	mloc2( src.size(), CV_32FC3 );
+		mloc2.setTo( Scalar( 0, 0, 0) );
+
+		bitwise_and( src, mloc2, dstWHole, dstIsHole );
+
+		dstHole2 = dstWHole.clone();
+		dstRes = dstWHole.clone();
+		if( 1 ) {
+			replaceHole( dstWHole, dstIsHole, dstRes, 1 );
+		} else {
+			dstWHole.convertTo(dstWHole, CV_8UC3, 255.0);
+			//	Csak 8 bites-re mukodik
+			inpaint( dstWHole, dstIsHole, dstRes, 3 + idilate, INPAINT_TELEA );
+		}
+		dstHole2 = dstRes.clone();
+
+	}
+
+
+return 1;
+}
+/***************************************************************************************
+*
+*   function:		
+*   arguments:
+*	description:	
+*	globals:
+*	side effect:
+*   return:
+*
+***************************************************************************************/
+int holeLittleStars( Mat src, float fedge, float fmin, int idilate, Mat &dstWHole, Mat &dstIsHole )
+{
+	Mat		dst3;
+	Mat		dstEdge;
+
+	GaussianBlur( src , dst3, cv::Size(0, 0), 3 );
+	addWeighted( src, fedge, dst3, -fedge, 0, dstEdge );
+
+	if( idilate ) {
+		dilate( dstEdge, dstEdge, getStructuringElement( MORPH_ELLIPSE, Size(idilate, idilate) ) );
+	}
+
+	dstWHole = src.clone();
 	dstIsHole.zeros(src.rows, src.cols, CV_32FC3 );
 	for (int i = 0; i < src.cols; i++) {
 		for (int j = 0; j < src.rows - 0; j++) {
 			Vec3f  intensity = dstEdge.at<Vec3f>(j, i);
-			//Vec3f  intensity_dst = dst.at<Vec3f>(j, i);
 			if( intensity.val[0] > fmin  ||  intensity.val[1] > fmin  ||  intensity.val[2]  > fmin ) {
-				dstHole1.at<Vec3f>(j, i) = {0,0,0};
+				dstWHole.at<Vec3f>(j, i) = {0,0,0};
 				dstIsHole.at<uchar>(j, i) = 255;
 			} else {
-				//dstIsHole.at<uchar>(j, i) = 0;
 			}
 		}
 	}
-	dstHole2 = dstHole1.clone();
-	dst = dstHole1.clone();
-	replaceHole( dstHole1, dstIsHole, dst, 1 );
-	dstHole2 = dst.clone();
 
+return 1;
+}
+/***************************************************************************************
+*
+*   function:		
+*   arguments:
+*	description:
+*	globals:
+*	side effect:
+*   return:
+*
+***************************************************************************************/
+void CallBackActionFunc(int event, int x, int y, int flags, void* pvact)
+{
+	act.pt = Point2d( x, y );
+	act.pt *= (double)DISP_W / (double)DISP_W2;
+	act.event = event;
+	act.flag = flags;
+	if( event == EVENT_LBUTTONUP ) {
+		int a = 1;
+		a++;
+	}
+
+return;
+}
+/***************************************************************************************
+*
+*   function:		
+*   arguments:
+*					src - eredeti, kihuzatlan kep
+*					src2 - a kihuzott kep, amin megjelenitjuk a lyukakat
+*					dstmask - csak a maszk
+*					dstRes - a maszkolt kep
+*	description:
+*	globals:
+*	side effect:
+*
+*   return:
+*
+***************************************************************************************/
+int fastThreshOnImg32FC3( Mat src, Mat src2, double lfthres, int ierode, Mat &dstmask, Mat &dstRes )
+{
+	string	str;
+	//str = type2str( chns[ 0 ] );
+	Mat		maskloc[ 3 ];
+	Mat		chns[ 3 ];
+
+	split( src, chns );
+
+	dstmask = Mat( src.size(), src.type() );
+
+	threshold( chns[ 0 ], maskloc[ 0 ], lfthres, 1, CV_THRESH_BINARY_INV );
+	threshold( chns[ 1 ], maskloc[ 1 ], lfthres, 1, CV_THRESH_BINARY_INV );
+	threshold( chns[ 2 ], maskloc[ 2 ], lfthres, 1, CV_THRESH_BINARY_INV );
+	bitwise_or( maskloc[ 0 ], maskloc[ 1 ], maskloc[ 0 ] );
+	bitwise_or( maskloc[ 0 ], maskloc[ 2 ], dstmask    );
+
+	if( ierode ) {
+		erode( dstmask, dstmask, getStructuringElement( MORPH_ELLIPSE, Size(ierode, ierode) ) );
+	}
+
+	dstmask.convertTo(dstmask, CV_8UC1, 255.0);
+	dstRes = src2.clone();
+	Mat	mloc2( src.size(), CV_32FC3 );
+	mloc2.setTo( Scalar( 0, 0, 0) );
+	bitwise_not( dstmask, dstmask );
+
+	bitwise_and( dstRes, mloc2, dstRes, dstmask );
+return 1;
+}
+/***************************************************************************************
+*
+*   function:		
+*   arguments:
+*					src1 - eredeeti kep
+*					src2 - lyukacsos kep
+*					mask - csillag maszk
+*					dstRes - eredmeny
+*	description:
+*	globals:
+*	side effect:
+*
+*   return:
+*
+***************************************************************************************/
+int fastCopyByMask32FC3( Mat src1, Mat src2, Mat &dstRes, Mat mask )
+{
+	string	str;
+	//str = type2str( chns[ 0 ] );
+	Mat		mstars;
+	Mat		mlyukas;
+	Mat		maskinv;
+
+	for (int i = 0; i < mask.cols; i++) {
+		for (int j = 0; j < mask.rows - 0; j++) {
+			uchar  intensity_mask = mask.at<uchar>(j, i);
+			if( !intensity_mask ) {
+				dstRes.at<Vec3f>(j, i) = src2.at<Vec3f>(j, i);
+			} else {
+				dstRes.at<Vec3f>(j, i) = src1.at<Vec3f>(j, i);
+			}			
+		}
+	}
+/*
+
+imshow( "src1_+", src1 );
+imshow( "src2_+", src2 );
+
+	//double	minVal = 0;
+	//double	maxVal = 0;
+	//Point	minLoc = 0;
+	//Point	maxLoc = 0;
+	//minMaxLoc( mask, &minVal, &maxVal, &minLoc, &maxLoc, noArray() );
+	//	A maskban 0-255 ertekek vannak
+	//mask /=255;
+
+
+	//dstRes = src2.clone();
+	Mat	mloc1( src1.size(), CV_32FC3 );
+	Mat	mloc2( src1.size(), CV_32FC3 );
+	Mat	mloc3( src1.size(), CV_32FC3 );
+	mloc1.setTo( Scalar( 0, 0, 0) );
+	mloc2.setTo( Scalar( 1, 1, 1) );
+
+	bitwise_not( mask, maskinv );
+imshow( "maskinv", maskinv );
+	bitwise_and( src2, mloc2, mlyukas, maskinv );
+imshow( "mlyukas", mlyukas );
+
+	
+
+	//bitwise_not( mask, mask );
+	bitwise_and( mloc2, mloc2, mloc3, mask );
+	mstars = src1.mul( mloc3 );
+	mloc3*=255;
+imshow( "mstars", mstars );
+imshow( "mloc3", mloc3 );
+
+//	bitwise_and( src1, mloc2, mstars, mask );
+//	bitwise_or( src2, mstars, dstRes );
+	//dstRes = src2 + mstars;
+	//bitwise_or( src2, mstars, dstRes );
+	bitwise_or( src1, mstars, dstRes );
+
+
+imshow( "dstRes_+", dstRes );
+*/
 return 1;
 }
 /***************************************************************************************
@@ -2572,34 +2829,18 @@ return 1;
 *   return:
 *
 ***************************************************************************************/
-int reduceStars(char *fileName, int rot)
+//int reduceStars(char *fileName, int rot)
+int reduceStars( char *fileName, Mat src )
 {
 	int		ret = 0;
-	Mat		src;
+/*	Mat		src;
 
 	int		imtype = CV_32FC3;
 	//int		imtype = CV_8UC3;
-	Mat		canvas;
-/*
-	Mat	mgombsor(400, 400, CV_8UC3, Scalar(64, 0, 0));
-	Rect buttonCrop = Rect(0, 0, 100, 40);
-	mgombsor(buttonCrop ) = Vec3b(200, 200, 200);
-	putText(mgombsor(buttonCrop), "Crop", Point(buttonCrop.width*0.35, buttonCrop.height*0.7), FONT_HERSHEY_PLAIN, 1, Scalar(0, 0, 0));
 
-	setMouseCallback("gombsor", CallBackGombsorMouseFunc, nullptr);
-	imshow("gombsor", mgombsor);
-*/
-	//mCurve.zeros(200,200,CV_8UC3);
-
-
-	namedWindow("Csuszkak", WINDOW_NORMAL);
-	resizeWindow("Csuszkak", 900, 700);
-
-	//canvas
 
 	//src = imread( fileName, CV_LOAD_IMAGE_GRAYSCALE );
 	//src = imread( fileName, IMREAD_GRAYSCALE  );
-
 	//src = imread(fileName);
 	//	cv_16u
 	//	https://stackoverflow.com/questions/41186294/opencv-normalization-of-16bit-grayscale-image-gives-weak-result
@@ -2607,8 +2848,11 @@ int reduceStars(char *fileName, int rot)
 	//	https://opencv.programmingpedia.net/en/tutorial/1957/pixel-access
 	//	https://arato.inf.unideb.hu/szeghalmy.szilvia/kepfeld/diak/szsz_ocv_gyak2.pdf
 	//src = imread(fileName);
-	src = imread(fileName, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
 
+	//
+	//	Ez a jo a TIFF-hez
+	//
+	src = imread(fileName, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
 	if (src.empty()) {		
 		exit(-1);
 	}
@@ -2621,9 +2865,18 @@ int reduceStars(char *fileName, int rot)
 	if (rot) {
 		src = rotate(src, 270);
 	}
+*/
+	namedWindow("Csuszkak", WINDOW_NORMAL);
+	resizeWindow("Csuszkak", 900, 800);
+
+	char	szWName0[256] = "1. Elokeszitett(dst)";
+	char	szWName1[256] = "Eredmeny";
 
 
-	if (1) {
+	if( !DISP_W ) {
+		DISP_W = src.cols;
+	}
+	if( 1 ) {
 		src = ResizeProperSize(src, DISP_W);
 	}
 
@@ -2643,28 +2896,75 @@ int reduceStars(char *fileName, int rot)
 
 
 	//	WhiteBalance a kozepso ponttal
-	whiteBalance( src, dst0, 1, rmin, gmin, bmin, rmax, gmax, bmax );
-	dst0 = dst0 * 2;
+	//whiteBalance( src, dst0, 1, rmin, gmin, bmin, rmax, gmax, bmax );
+	//dst0 = dst0 * 2;
 
 
 
 	double	colmax = max( rmax, max( gmax, bmax ) );
 	double	colmin = min( rmin, min( gmin, bmin ) );
 
+	Scalar	meanRGB = mean( src, noArray() );
+	double	meanavg = (meanRGB.val[0]+meanRGB.val[1]+meanRGB.val[2])/3.0;
+	printf("mean: (%lf, %lf, %lf)", meanRGB.val[0], meanRGB.val[1], meanRGB.val[2] );
+	Mat		chns[ 3 ];
+	split( src, chns );
+	double	minVal = 0;
+	double	maxVal = 0;
+	Point	minLoc = 0;
+	Point	maxLoc = 0;
+	double	minValB = 0;
+	double	maxValB = 0;
+	double	minValG = 0;
+	double	maxValG = 0;
+	double	minValR = 0;
+	double	maxValR = 0;
+	minMaxLoc( chns[0], &minVal, &maxVal, &minLoc, &maxLoc, noArray() );
+	minValB = minVal;
+	maxValB = maxVal;
+	minMaxLoc( chns[1], &minVal, &maxVal, &minLoc, &maxLoc, noArray() );
+	minValG = minVal;
+	maxValG = maxVal;
+	minMaxLoc( chns[2], &minVal, &maxVal, &minLoc, &maxLoc, noArray() );
+	minValR = minVal;
+	maxValR = maxVal;
+	printf("min: (%lf, %lf, %lf)", minValB, minValG, minValR );
+	//minVal = max(minValR, max(minValG, minValB));
+	minVal = min(minValR, min(minValG, minValB));
+	maxVal = max(maxValR, max(maxValG, maxValB));
 
-	int		ifmul = 1000;
-	int		ifmulmax = 200000;
+
+
+	//int		ifmul = 1000;
+	//int		ifmul = 1000;
+	int		ifmul = 1000. / meanavg;
+	//int		ifmulmax = 90000;
+	int		ifmulmax = 40000;
 	double	fmul = (double)ifmul/1000.0;//30;
 
-	int		ifsub = 0;
-	int		ifsubmax = 300;
+	//int		ifsub = 0;
+	//int		ifsub = 91;
+	//int		ifsub = 1000.0 * minVal;
+	int		ifsub = 1000.0 * (meanavg/2.0);
+	int		ifsubmax = 4000;
 	double	fsub = (double)ifsub / 1000.0;//0.102;
 
-	int		ithresvalmax = 1000.0 * colmax * 2.05;
-	int		ithresval = 500;
+	//int		ithresvalmax = 1000.0 * colmax * 2.05;
+	//int		ithresvalmax = 1000.0 * colmax * 2.05;
+	int		ithresvalmax = 1000.0 * maxVal;
+	//int		ithresvalmax = 1000.0;
+	//int		ithresvalmax = maxVal;
+
+	//int		ithresvalmax = 32000.0 * meanavg;
+	//int		ithresval = 500;
+	//int		ithresval = ithresvalmax / 3.0;
+	int		ithresval = ithresvalmax;
+	//int		ithresval = 4000.0 * meanavg;
+	//int		ithresval = 0;
 	double	thresval = (double)ithresval / (double)1000.0;
 
 	int		ierode = 16 * (double)DISP_W / (double)1600;
+	//int		ierode = 0;
 	int		ierodemax = 100;
 
 
@@ -2698,35 +2998,60 @@ int reduceStars(char *fileName, int rot)
 	int		iedgedilatemax = 15;
 
 
+	int		ifmul2 = 1000;
+	int		ifmulmax2 = 6000;
+	double	fmul2 = (double)ifmul2/1000.0;//30;
+
+	int		ifsub2 = 0;
+	int		ifsubmax2 = 1000;
+	double	fsub2 = (double)ifsub / 1000.0;//0.102;
+
+	int		iimg = 1;
+	int		iimgmax = 5;
+
+	int		isave = 0;
+	int		isavemax = 1;
+
 
 	Mat dstmask( src.size(), CV_8UC1, Scalar(0) );
 	Mat	dstHoleSTAR( src.size(), CV_32FC3, Scalar(0) );
+	Mat	dstAdapt( src.size(), CV_32FC3, Scalar(0) );
 	Mat	dstEdge1( src.size(), CV_32FC3, Scalar(0) );
 	Mat	dstEdge2( src.size(), CV_32FC3, Scalar(0) );
 	Mat dstHole1( src.size(), CV_32FC3, Scalar(0) );
 	Mat dstHole2( src.size(), CV_32FC3, Scalar(0) );
 	Mat dstHole3( src.size(), CV_32FC3, Scalar(0) );
 	Mat dstIsHole( src.size(), CV_8UC1, Scalar(0) );
-	//Mat dstRes( src.size(), CV_32FC3, Scalar(0) );
+	Mat dstIsHole1( src.size(), CV_8UC1, Scalar(0) );
+	Mat dstIsHole2( src.size(), CV_8UC1, Scalar(0) );
 	Mat	dstResAvg1( src.size(), CV_32FC3, Scalar(0) );
 	Mat	dstResAvg( src.size(), CV_32FC3, Scalar(0) );
+	Mat	dstResAvgPost(src.size(), CV_32FC3, Scalar(0) );
 
-
+	static	int	ifutott = 0;
 
 	inproc = 1;
 	for( ; ; ) {
+		setMouseCallback( szWName0, CallBackActionFunc, NULL );
+		
+
 
 		//	Alap gain minden elott
 		//createTrackbar("gain", "Csuszkak", &igain, igainmax, on_trackbar);
 		gain = (double)igain / (double)1000.0;
 
-		//	A "gorbezes" szorzoja elott egy alapertek kivonas
-		createTrackbar("- Hatter", "Csuszkak", &ifsub, ifsubmax, on_trackbar);
-		fsub = (double)ifsub/1000.0;
+
+		createTrackbar("MegMeret", "Csuszkak", &DISP_W2, 1600, on_trackbar);
+		
 
 		//	A "gorbezeshez" egy szorzo
 		createTrackbar("* Fenyero", "Csuszkak", &ifmul, ifmulmax, on_trackbar);
 		fmul = (double)ifmul/1000.0;
+
+		//	A "gorbezes" szorzoja elott egy alapertek kivonas
+		createTrackbar("- Hatter", "Csuszkak", &ifsub, ifsubmax, on_trackbar);
+		fsub = (double)ifsub/1000.0;
+
 
 		//	A nagy csillagokta a threshold erteke
 		createTrackbar("STAR vagas", "Csuszkak", &ithresval, ithresvalmax, on_trackbar);
@@ -2787,36 +3112,260 @@ int reduceStars(char *fileName, int rot)
 		createTrackbar("star kitrj", "Csuszkak", &iedgedilate, iedgedilatemax, on_trackbar);
 
 
+		//	A "gorbezeshez" egy szorzo
+		createTrackbar("* Fenyero2", "Csuszkak", &ifmul2, ifmulmax2, on_trackbar);
+		fmul2 = (double)ifmul2/1000.0;
+
+		//	A "gorbezes" szorzoja elott egy alapertek kivonas
+		createTrackbar("- Hatter2", "Csuszkak", &ifsub2, ifsubmax2, on_trackbar);
+		fsub2 = (double)ifsub2/1000.0;
+
+
+		createTrackbar("kepvalto", "Csuszkak", &iimg, iimgmax, on_trackbar);
+		createTrackbar("Save Tif", "Csuszkak", &isave, isavemax, on_trackbar);
+		if( 0 && isave ) {
+			isave = 0;
+			char	szFileNameRes[ 256 ];
+			char	*pTmp =strrchr( fileName, '/');
+			memset( szFileNameRes, 0, sizeof( szFileNameRes ) );
+			if( !pTmp) {
+				pTmp = strrchr( fileName, '\\');
+			}
+			if( !pTmp ) {
+				sprintf( szFileNameRes, "%s/res.tif");
+			} else {
+				strncpy( szFileNameRes, fileName, pTmp - fileName );
+				strcat( szFileNameRes, "/res.tif");
+			}
+			int ret = imwrite( szFileNameRes, dstResAvgPost );
+			printf("");
+		}
+
 
 		//	A fenyerot elore beallithatjuk
-		dst = gain * fmul * ( dst0 - fsub );
+		//dst = gain * fmul * ( dst0 - fsub );
+		Scalar	scBG = meanRGB * fsub * fmul;	//	Ugyanez nem szinezi el jobban
+		dst = dst0 * fmul - scBG;
 
 
 
-		//dstmask.zeros(dst.rows, dst.cols, CV_8UC1 );
-		//if( ierode ) {
-		//	erode( dstmask, dstmask, getStructuringElement( MORPH_ELLIPSE, Size(ierode, ierode) ) );
-		//}
 
-		if( ithresval ) {
-			starMaskTresh( dst0, dstmask, thresval );
-		}
-		if( !iDoProc ) {
-			if( ierode ) {
-				erode( dstmask, dstmask, getStructuringElement( MORPH_ELLIPSE, Size(ierode, ierode) ) );
+		if( 0 ) {
+			Mat dstgrey;
+			Mat	dst8;
+			Mat dstthres;
+			Mat		dstchn[ 3 ];
+			Mat		chns[ 3 ];
+			dst.convertTo( dst8, CV_8UC3, 255.0);
+			split( dst8, dstchn );
+			if( 1 ) {
+				int		ivv = 1;
+				dstchn[0].convertTo( dstgrey, CV_8UC1);
+
+				//int		ath_type = ADAPTIVE_THRESH_MEAN_C;
+				int		ath_type = ADAPTIVE_THRESH_GAUSSIAN_C;
+
+				adaptiveThreshold(dstgrey, dstthres, ivv, ath_type, THRESH_BINARY, 51, ithresval/1000.0 );
+				dstAdapt = dstthres.clone();
+
+				dstchn[1].convertTo( dstgrey, CV_8UC1);
+				adaptiveThreshold(dstgrey, dstthres, ivv, ath_type, THRESH_BINARY, 51, ithresval/1000.0 );
+
+				bitwise_or( dstAdapt, dstthres, dstAdapt );
+
+				dstchn[2].convertTo( dstgrey, CV_8UC1);
+				adaptiveThreshold(dstgrey, dstthres, ivv, ath_type, THRESH_BINARY, 51, ithresval/1000.0 );
+
+				bitwise_or( dstAdapt, dstthres, dstAdapt );
+				if( 1 && ierode ) {
+					erode(  dstAdapt, dstAdapt, getStructuringElement( MORPH_ELLIPSE, Size(ierode+1, ierode+1) ) );
+					dilate( dstAdapt, dstAdapt, getStructuringElement( MORPH_ELLIPSE, Size(ierode+2, ierode+2) ) );
+				}
+				mul8Ux3FC( dstAdapt, dst, dstHoleSTAR );
+
+				dstHole1 = dstHoleSTAR.clone();
+				replaceHole( dstHoleSTAR, dstAdapt, dstHole1, 0 );
 			}
 		}
-		bitwise_not( dstmask, dstmask );
-		mul8Ux3FC( dstmask, dst, dstHoleSTAR );
 
 
 
-		if( inproc && iDoProc) {
+
+		if( 0 ) {
+			if( 1 && ithresval ) {
+				starMaskTresh( dst0, dstmask, thresval );
+				if( !iDoProc ) {
+					if( ierode ) {
+						erode( dstmask, dstmask, getStructuringElement( MORPH_ELLIPSE, Size(ierode, ierode) ) );
+					}
+				}
+				//bitwise_not( dstmask, dstmask );
+				//mul8Ux3FC( dstmask, dst, dstHoleSTAR );
+				//	A nagy csillagok maszkja levonva az alapbol
+				//bitwise_and( dst, dst, dstHoleSTAR, dstmask );
+				//bitwise_and( dst0, dst0, dstHoleSTAR, dstmask );
+				dstHoleSTAR = dstmask.clone();
+			}
+		} else {
+			if( 1 ) {
+				fastThreshOnImg32FC3( dst0, dst, thresval, ierode, dstmask, dstHoleSTAR );
+			} else {
+				Mat		chns[ 3 ];
+				Mat		hsv;
+				cvtColor( dst0, hsv, CV_BGR2HSV);
+				//split( dst0, chns );
+				split( hsv, chns );
+				//minMaxLoc( chns[0], &minVal, &maxVal, &minLoc, &maxLoc, noArray() );
+				string	str;
+				str = type2str( chns[ 0 ] );
+				Mat		maskloc[ 3 ];
+				//chns[0].convertTo(chns[0], CV_8UC1, 255.0);
+				//chns[1].convertTo(chns[1], CV_8UC1, 255.0);
+				//chns[2].convertTo(chns[2], CV_8UC1, 255.0);
+
+				minMaxLoc( chns[2], &minVal, &maxVal, &minLoc, &maxLoc, noArray() );
+
+				threshold( chns[ 2 ], maskloc[ 0 ], thresval, 1, CV_THRESH_BINARY_INV );
+				//threshold( chns[ 0 ], maskloc[ 0 ], (int)(255.0*0.006), 255, CV_THRESH_BINARY_INV );
+				//threshold( chns[ 0 ], maskloc[ 0 ], 1, 255, CV_THRESH_BINARY_INV );
+				//str = type2str( maskloc[ 0 ] );
+				//minMaxLoc( maskloc[0], &minVal, &maxVal, &minLoc, &maxLoc, noArray() );
+
+				//threshold( chns[ 1 ], maskloc[ 1 ], thresval, 1, CV_THRESH_BINARY_INV );
+				//threshold( chns[ 2 ], maskloc[ 2 ], thresval, 1, CV_THRESH_BINARY_INV );
+				//bitwise_or( maskloc[ 0 ], maskloc[ 1 ], maskloc[ 0 ] );
+				//bitwise_or( maskloc[ 0 ], maskloc[ 2 ], dstmask    );
+				dstmask = maskloc[ 0 ].clone();
+
+				if( ierode ) {
+					erode( dstmask, dstmask, getStructuringElement( MORPH_ELLIPSE, Size(ierode, ierode) ) );
+				}
+
+				//dstmask = maskloc[ 0 ].clone();
+				//bitwise_not( dstmask, dstmask );
+
+				str = type2str( dstmask );
+				//str = type2str( dstHoleSTAR );
+				//cvtColor( dstmask, dstmask, CV_BGR2GRAY );
+				//str = type2str( dstmask );
+				//dstmask.convertTo(dstmask, CV_8UC1 );
+				dstmask.convertTo(dstmask, CV_8UC1, 255.0);
+				minMaxLoc( dstmask, &minVal, &maxVal, &minLoc, &maxLoc, noArray() );
+				dstHoleSTAR = dst.clone();
+				str = type2str( dstHoleSTAR );
+				Mat	mloc2( src.size(), CV_32FC3 );
+				//mloc2.setTo( Scalar( 1, 1, 1) );
+				mloc2.setTo( Scalar( 0, 0, 0) );
+				bitwise_not( dstmask, dstmask );
+
+				bitwise_and( dstHoleSTAR, mloc2, dstHoleSTAR, dstmask );
+				//bitwise_and( dstHoleSTAR, dstHoleSTAR, dstHoleSTAR, dstmask );
+				//bitwise_and( dstHoleSTAR, dstmask, dstHoleSTAR );
+				//dstHoleSTAR = dstmask.clone();
+				//str = type2str( dstHoleSTAR );
+				//threshold( dst0, dstHoleSTAR, thresval, 255, CV_THRESH_TOZERO );
+				dstHole3 = dstHoleSTAR.clone();
+			}
+		}
+
+
+
+		//	Kicsike es kozepes csillagok lyuka
+		if( 1 ) {
+				//removeLittleStars( dst       , fedge, fmin, iedgedilate, dstResAvg1, dstEdge1, dstHole1, dstHole2, dstIsHole );
+			removeLittleStars( dst       , fedge , fmin ,           0, dstResAvg1, dstEdge1, dstHole1, dstHole2, dstIsHole );
+				//holeLittleStars( dst, fedge, fmin,           0, dstHole1, dstIsHole1 );
+				//replaceHole( dstHole1, dstIsHole, dstResAvg, 1 );
+			removeLittleStars( dstResAvg1, fedge2, fmin2, iedgedilate, dstResAvg , dstEdge2, dstHole2, dstHole3, dstIsHole );
+				//holeLittleStars( dst, fedge, fmin, iedgedilate, dstHole2, dstIsHole2 );
+				//replaceHole( dstHole1, dstIsHole, dstResAvg, 1 );
+		}
+
+
+		//
+		//	Nagy csillagok meret szerinti dilate-ja
+		//
+		if( 0 ) {
+
+			//	https://docs.opencv.org/3.4/de/d01/samples_2cpp_2connected_components_8cpp-example.html
+			Mat	dstBlob( dst.size(), CV_8UC1, Scalar(0) );
+			Mat1i	labelImage, stats;
+			if( 1 ) {
+#define		SIZETMB	200
+				Mat dstmask_loc;
+				dstmask_loc = ResizeProperSize(dstmask, SIZETMB);
+
+
+				//	https://docs.opencv.org/3.4/de/d01/samples_2cpp_2connected_components_8cpp-example.html
+				Mat1i	stats;
+				if( 1 ) {
+					Mat		centroids;
+					int nLabels = connectedComponentsWithStats( dstmask_loc, labelImage, stats, centroids);
+
+					static	int	ilabel = 0;
+					ilabel++;
+					ilabel = ilabel % nLabels + 1;
+					for( int ilabel = 0; ilabel < nLabels; ilabel++ ) {
+						Mat1i dstblob1;// = labelImage.clone();
+
+						//inRange( labelImage, ilabel, ilabel, dstblob1 );
+						dstblob1 = labelImage - ilabel;
+						dstblob1 = dstblob1 / dstblob1;
+						dstblob1 = 1 - dstblob1;
+						dstblob1 = 256 * dstblob1;
+
+						Mat dstblob2( dst.size(), CV_8UC1, Scalar(0) );
+						dstblob2 = Mat( dstblob1 );
+						dstblob1.convertTo( dstblob2, CV_8UC1 );
+						if( ierode ) {
+							int		area = stats[ ilabel ][ CC_STAT_AREA ];
+							if( area < 200 ) {
+								int ierodemul = ((double)SIZETMB/(double)DISP_W)*(double)( (double)ierode * pow( (double)area, 0.6 )/1.0 );
+								dilate( dstblob2, dstblob2, getStructuringElement( MORPH_ELLIPSE, Size(ierodemul, ierodemul) ) );
+								bitwise_or( dstmask_loc, dstblob2, dstmask_loc );
+							}
+						}
+					}
+					resize(dstmask_loc, dstmask, dst.size() );	//	meretezes
+					mul8Ux3FC( dstmask, dst, dstHole3 );
+				}
+			}
+		}
+
+
+		//
+		//	A nagy csillagokat visszatesszuk
+		//
+		//dstResAvg = dst.clone();
+		//dstResAvgPost = dst.clone();
+		//dstHole3 = dst.clone();
+		//bitwise_or( dst, dstResAvg, dstResAvg, dstmask );
+		//bitwise_or( dst, dst, dstResAvg, dstmask );
+		fastCopyByMask32FC3( dst, dstHole3, dstResAvg, dstmask );
+		//fastCopyByMask32FC3( dst, dstHoleSTAR, dstResAvg, dstmask );
+		imshow( "dstHole3_+", dstHole3 );
+		imshow( "dstResAvg_+", dstResAvg );
+
+		imshow( "maszk", dstmask );
+
+
+
+/*
+		//
+		//	KESZRE FELDOLGOZAS
+		//
+		if( 1 && inproc && iDoProc) {
 			inproc = 0;
 			//iDoProc = 0;
 
+			//	Az eredmenyt mutassa
+			if( !ifutott ) {
+				ifutott = 1;
+				iimg = 5;
+			}
 
-
+#define	DOBLOB
+#if defined( DOBLOB )
 
 
 			//	https://docs.opencv.org/3.4/de/d01/samples_2cpp_2connected_components_8cpp-example.html
@@ -2874,213 +3423,154 @@ int reduceStars(char *fileName, int rot)
 					dilate( dstmask, dstmask, getStructuringElement( MORPH_ELLIPSE, Size(ierode, ierode) ) );
 				}
 			}
-
-
-			//
-			//	EDGE
-			//	A kis csillagokat nem sima thresholddal tuntetjuk el, 
-			//	hanem a (kep - gauss) > szam alapjan
-			//
-			Mat	dst3;
-			dstEdge1.zeros(dst.rows, dst.cols, CV_32FC3 );
-			dstEdge2.zeros(dst.rows, dst.cols, CV_32FC3 );
-			dstHole1 = dst.clone();
-			dstHole2 = dst.clone();
-			dstIsHole.zeros(dst.rows, dst.cols, CV_8UC1 );
+#endif
 
 //@@@
-			if( 1 ) {
-				if( 0 ) {
-					removeLittleStars( dst       , fedge, fmin, iedgedilate, dstResAvg , dstEdge1, dstHole1, dstHole3, dstIsHole );
-				} else {
-					removeLittleStars( dst       , fedge , fmin ,           0, dstResAvg1, dstEdge1, dstHole1, dstHole2, dstIsHole );
-					removeLittleStars( dstResAvg1, fedge2, fmin2, iedgedilate, dstResAvg , dstEdge2, dstHole2, dstHole3, dstIsHole );
-				}
-			} else {
-				GaussianBlur( dst , dst3, cv::Size(0, 0), 3 );
-				addWeighted( dst, fedge, dst3, -fedge, 0, dstEdge1 );
 
-				// Betomjuk a legkisebb lyukakat, hogy a dilate uan sok jo 
-				//	ixel legyen
-				//thresh3FC32To8UC1( dstEdge1, fmin, dstIsHole, dstHole1 );
-				//replaceHole( dstHole1, dstIsHole, dstHole2, 1 );
-
-				Mat	dstEdge8b;//( src.size(), CV_32FC3, Scalar(0) );
-				if( iedgedilate ) {
-					dilate( dstEdge1, dstEdge2, getStructuringElement( MORPH_ELLIPSE, Size(iedgedilate, iedgedilate) ) );
-					//dstEdge1.convertTo( dstEdge8b, CV_8UC1);
-					//dstEdge2.convertTo( dstEdge2, CV_8UC3);
-					//cvtColor( dstEdge2, dstEdge2, COLOR_BGR2GRAY );
-					//dstEdge2.convertTo( dstEdge2, CV_8UC1);
-					//dstEdge2 /= dstEdge2;
-					//dstEdge2 *= 255;
-				}
-
-				if( 0 ) {
-					thresh3FC32To8UC1( dstEdge2, fmin, dstIsHole, dstHole2 );
-					replaceHole( dstHole2, dstIsHole, dstHole3, 1 );
-					dstIsHole.zeros(dst.rows, dst.cols, CV_32FC3 );
-				} else {
-					for (int i = 0; i < dstEdge2.cols; i++) {
-						for (int j = 0; j < dstEdge2.rows - 0; j++) {
-							Vec3f  intensity = dstEdge2.at<Vec3f>(j, i);
-							Vec3f  intensity_dst = dst.at<Vec3f>(j, i);
-							if( intensity.val[0] > fmin  ||  intensity.val[1] > fmin  ||  intensity.val[2]  > fmin ) {
-								dstHole1.at<Vec3f>(j, i) = {0,0,0};
-								dstIsHole.at<uchar>(j, i) = 255;
-							} else {
-								dstIsHole.at<uchar>(j, i) = 0;
-							}
-						}
-					}
-					dstHole2 = dstHole1.clone();
-					dstResAvg = dstHole1.clone();
-
-					replaceHole( dstHole1, dstIsHole, dstResAvg, 1 );
-					dstIsHole.zeros(dst.rows, dst.cols, CV_32FC3 );
-					dstHole3 = dstResAvg.clone();
-
-				}
+			if( 0 ) {
+				removeLittleStars( dst       , fedge , fmin ,           0, dstResAvg1, dstEdge1, dstHole1, dstHole2, dstIsHole );
+				removeLittleStars( dstResAvg1, fedge2, fmin2, iedgedilate, dstResAvg , dstEdge2, dstHole2, dstHole3, dstIsHole );
 			}
-		
 
 			//	A hole-ra rakjuk a nagy csillagokat
-			if( 1 ) {
-				dstIsHole.zeros(src.rows, src.cols, CV_32FC3 );
+			if( 0 ) {
+				dstIsHole2.zeros(src.rows, src.cols, CV_32FC3 );
 				for (int i = 0; i < dst.cols; i++) {
 					for (int j = 0; j < dst.rows - 0; j++) {
 						uchar  intensity_mask = dstmask.at<uchar>(j, i);
 						Vec3f  intensity_dst = dst.at<Vec3f>(j, i);
 						if( !intensity_mask ) {
 							//printf("");
-							dstIsHole.at<uchar>(j, i) = 0;
+							dstIsHole2.at<uchar>(j, i) = 0;
 						} else {
 							dstHole3.at<Vec3f>(j, i) = {0,0,0};
-							dstIsHole.at<uchar>(j, i) = 255;
+							dstIsHole2.at<uchar>(j, i) = 255;
 						}			
 					}
 				}
-			}
-			if( 1 ) {
-				//del3FC32Where8UC1is0( dstmask, dstHole3, dstIsHole );
-				//thresh3FC32To8UC1( dstEdge2, fmin, dstIsHole, dstHole2 );
-				//replaceHole( dstHole2, dstIsHole, dstHole3, 1 );
-			}
-
-
+			} 
 			if( 0 ) {
-				for (int i = 0; i < dst.cols; i++) {
-					for (int j = 0; j < dst.rows - 0; j++) {
-						uchar  intensity_mask = dstmask.at<uchar>(j, i);
-						Vec3f  intensity_dst = dst.at<Vec3f>(j, i);
-						if( !intensity_mask ) {
-						} else {
-							dstHole3.at<Vec3f>(j, i)[ 0 ] = (intensity_dst.val[0]-fsub) / StarDiv + fsub;
-							dstHole3.at<Vec3f>(j, i)[ 1 ] = (intensity_dst.val[1]-fsub) / StarDiv + fsub;
-							dstHole3.at<Vec3f>(j, i)[ 2 ] = (intensity_dst.val[0]-fsub) / StarDiv + fsub;
-						}			
-					}
-				}
+				bitwise_and( dst, dst, dstHole3, dstmask );
+				bitwise_not( dstmask, dstIsHole2 );
 			}
 
-
-
-			//cvtColor( dstmask, dstmask, COLOR_BGR2GRAY );
-
-
-			//	Egy konturt kepzek a csillagok korul, ez lesz a legkozelebbi ertek, amivel helyettesiteni
-			//	lehet.
-			//	Csillagkicsinyiternel ez a kontur (csak erode-dal elott) lesz az a maszk, aminek az erteket
-			//	a kornyezettel kell lecserelni
-			Mat dstIsHoleDilate = dstIsHole.clone();
-			//Mat dstIsHoleContour( dst.size(), CV_32FC3);
-			Mat dstIsHoleContour( dst.size(), CV_8UC1);			
-			if( 0 ) {
-				dilate( dstIsHoleDilate, dstIsHoleDilate, getStructuringElement( MORPH_ELLIPSE, Size(5, 5) ) );
-				dstIsHoleContour.zeros(dst.rows, dst.cols, CV_32FC3 );
-				bitwise_xor( dstIsHole, dstIsHoleDilate, dstIsHoleContour );
-				for (int i = 0; i < dst.cols; i++) {
-					for (int j = 0; j < dst.rows - 0; j++) {
-						Vec3f  intensity_HoleC = dstIsHoleContour.at<Vec3f>(j, i);
-						Vec3f  intensity_dst = dst.at<Vec3f>(j, i);
-						if( intensity_HoleC.val[0]  ||  intensity_HoleC.val[1] || intensity_HoleC.val[2] ) {
-							dstIsHoleContour.at<Vec3f>(j, i) = intensity_dst;
-						}
-					}
-				}
-			}
-
-	//
-	//        .....
-	//       .     .
-	//      . +     .
-	//     .         .
-	//     .       + .
-	//     .    +    .
-	//      .       .
-	//       .     .
-	//        .....
-	//
-	//	Minden pontot az x es az y koordinatajan levo legkozelebbi pontok tavolsagaryanos 
-	//	szinertek atlagakent hatarozunk meg.
-	//	Vagy ugyanez, de csak hsv[v] atlagot allitunk be, igy a szine megmarad, csak a 
-	//	csillagmagon kivul az eredetileg beszurodo szine marad meg.
-	//	Ezeket blobokkent keressuk a dstHole layeren.
-	//
-	//	Jobb megoldas lenne, ha nem a kereszt alaku pontokat vennem, hanem az osszes legkozelebbi
-	//	pont tavolsagaranyos atlagat, de az joval lassabb es meg nem is tartok ott.
+			//
+			//        .....
+			//       .     .
+			//      . +     .
+			//     .         .
+			//     .       + .
+			//     .    +    .
+			//      .       .
+			//       .     .
+			//        .....
+			//
+			//	Minden pontot az x es az y koordinatajan levo legkozelebbi pontok tavolsagaryanos 
+			//	szinertek atlagakent hatarozunk meg.
+			//	Vagy ugyanez, de csak hsv[v] atlagot allitunk be, igy a szine megmarad, csak a 
+			//	csillagmagon kivul az eredetileg beszurodo szine marad meg.
+			//	Ezeket blobokkent keressuk a dstHole layeren.
+			//
+			//	Jobb megoldas lenne, ha nem a kereszt alaku pontokat vennem, hanem az osszes legkozelebbi
+			//	pont tavolsagaranyos atlagat, de az joval lassabb es meg nem is tartok ott.
 
 			dstResAvg = dstHole3.clone();
 			if( 1 ) {
-				//replaceHole( dstHole, dstIsHole, dstRes, 0 );
-				replaceHole( dstHole3, dstIsHole, dstResAvg, 1 );
-				//replaceHole( dstHole, dstIsHole, dstResAvg, 0 );
+				////replaceHole( dstHole3, dstIsHole2, dstResAvg, 1 );
+				//replaceHole( dstHole3, dstmask, dstResAvg, 1 );
+				//bitwise_or( dst, dstHole3, dstResAvg, dstmask );
+				//bitwise_or( dst, dst, dstResAvg, dstmask );
+				dstResAvgPost = dst.clone();
 			}
-			//double min, max;
-			//minMaxLoc( dstEdge1, &min, &max );
-			//if( min)
-			//dstEdge1 = 
-			//dstResAvg = dstResAvg + dstEdge1;
 
-
-
-	//	PARABOLOID
-	//	https://math.stackexchange.com/questions/2010758/how-do-i-fit-a-paraboloid-surface-to-nine-points-and-find-the-minimum
-	//	Hatterszint valasztunk tobb helyen a gradienssel es 
-	//	paraboloidot illesztunk ra. A paraboloid erteke lesz a szorzo, 
-	//	amivel osztjuk az eredeti keppont szineket.
-	//	Lehet, hogy ekkor mar a whitebalance nem is kell.
-	//	CSILLAGSZINEK
-	//	Valahogy vissza kellene csempeszni az eredeti csillagokat az eredeti szinukkel is?
-
-
+			//	PARABOLOID
+			//	https://math.stackexchange.com/questions/2010758/how-do-i-fit-a-paraboloid-surface-to-nine-points-and-find-the-minimum
+			//	Hatterszint valasztunk tobb helyen a gradienssel es 
+			//	paraboloidot illesztunk ra. A paraboloid erteke lesz a szorzo, 
+			//	amivel osztjuk az eredeti keppont szineket.
+			//	Lehet, hogy ekkor mar a whitebalance nem is kell.
+			//	CSILLAGSZINEK
+			//	Valahogy vissza kellene csempeszni az eredeti csillagokat az eredeti szinukkel is?
 
 		}
+*/
+
+
+		if( act.event == EVENT_LBUTTONDOWN ) {
+		//if( act.event == EVENT_LBUTTONUP ) {
+			whiteBalancePt( src, dst0, act.pt );
+			meanRGB = mean( dst0, noArray() );
+		}
+		circle( dst, act.pt, 10, Scalar(0,0,1), 1 );
+
+
+		{
+			//dstResAvgPost = fmul2 * (dstResAvg - fsub2);
+			Scalar	scBG = meanRGB * fsub2 * fmul2;	//	Ugyanez nem szinezi el jobban
+			dstResAvgPost = dstResAvg * fmul2 - scBG;
+
+			if( isave ) {
+				isave = 0;
+				char	szFileNameRes[ 256 ];
+				char	*pTmp =strrchr( fileName, '/');
+				memset( szFileNameRes, 0, sizeof( szFileNameRes ) );
+				if( !pTmp) {
+					pTmp = strrchr( fileName, '\\');
+				}
+				if( !pTmp ) {
+					sprintf( szFileNameRes, "%s/res.tif");
+				} else {
+					strncpy( szFileNameRes, fileName, pTmp - fileName );
+					strcat( szFileNameRes, "/res.tif");
+				}
+				int ret = imwrite( szFileNameRes, dstResAvgPost );
+				printf("");
+			}
 
 
 
-		//imshow("src", src );
-		imshow("1. Elokeszitett(dst)", dst );
-		//imshow("dstmask", dstmask );
-		imshow("2. Nagy csillagokra lyukak, elozetes (dstHoleSTAR)", dstHoleSTAR );
-		if( iDoProc ) {
-			//imshow("dstEdge1", dstEdge1 );
-			//imshow("dstEdge2", dstEdge2 );
-			imshow("3. Kis csillagokra lyukak (dstHole1)", dstHole1 );
-			imshow("4. Kis csillagokra lyukak (dstHole2)", dstHole2 );
-			//imshow("dstHole2", dstHole2 );
-			imshow("5. Nagy csillagokra lyukak, vegleges (dstHole3)", dstHole3 );
-			//imshow("dstIsHole", dstIsHole );
-			//imshow("dstIsHoleDilate", dstIsHoleDilate );
-			//imshow("dstIsHoleContour", dstIsHoleContour );
-			//imshow("dstDilate", dstDilate );
-			//imshow("dstRes", dstRes );
-			//imshow("labelImage", labelImage );
-			//imshow("dstBlob", dstBlob );
 
 
-			//imshow("dstResAvg1", dstResAvg1 );
-			imshow("6. Kesz kep (dstResAvg)", dstResAvg );
+
+			Mat dstRes0 = ResizeProperSize( dst, DISP_W2 );
+			imshow(szWName0, dstRes0 );
+
+			static	Mat	dstRes;
+
+			static int iimglast = -1;
+			if( inproc || iimglast != iimg ) {
+				iimglast = iimg;
+
+				switch( iimg ) {
+				case 0:
+					//	Kifenyesitett
+					dstRes = ResizeProperSize( dst, DISP_W2 );
+					break;
+				case 1:
+					//	nagy lyukak 1
+					dstRes = ResizeProperSize( dstHoleSTAR, DISP_W2 );
+					break;
+				case 2:
+					// kicsike csillagok
+					dstRes = ResizeProperSize( dstHole1, DISP_W2 );
+					break;
+				case 3:
+					//	kozepes csillagok
+					dstRes = ResizeProperSize( dstHole2, DISP_W2 );
+					break;
+				case 4:
+					//	nagy lyukak 2
+					dstRes = ResizeProperSize( dstHole3, DISP_W2 );
+					break;
+				case 5:
+					dstRes = ResizeProperSize( dstResAvgPost, DISP_W2 );
+					break;
+				default:
+					dstRes = ResizeProperSize( dstResAvgPost, DISP_W2 );
+					break;
+				}
+			}
+			imshow( szWName1, dstRes );
 		}
 		
 		if ((ret = waitKey(30)) >= 0) {
@@ -3091,6 +3581,540 @@ int reduceStars(char *fileName, int rot)
 	}
 
 return 0;
+}
+/***************************************************************************************
+*
+*   function:		reduceStars
+*   arguments:
+*	description:	
+*	globals:
+*	side effect:
+*   return:
+*
+***************************************************************************************/
+int reduceStarsLoad(char *fileName, int rot)
+{
+	int		ret = 0;
+	Mat		src;
+
+	int		imtype = CV_32FC3;
+	//int		imtype = CV_8UC3;
+/*
+	Mat	mgombsor(400, 400, CV_8UC3, Scalar(64, 0, 0));
+	Rect buttonCrop = Rect(0, 0, 100, 40);
+	mgombsor(buttonCrop ) = Vec3b(200, 200, 200);
+	putText(mgombsor(buttonCrop), "Crop", Point(buttonCrop.width*0.35, buttonCrop.height*0.7), FONT_HERSHEY_PLAIN, 1, Scalar(0, 0, 0));
+
+	setMouseCallback("gombsor", CallBackGombsorMouseFunc, nullptr);
+	imshow("gombsor", mgombsor);
+*/
+	//mCurve.zeros(200,200,CV_8UC3);
+
+	char	szWName0[256] = "1. Elokeszitett(dst)";
+	char	szWName1[256] = "Eredmeny";
+
+	namedWindow("Csuszkak", WINDOW_NORMAL);
+	resizeWindow("Csuszkak", 900, 800);
+
+
+	//src = imread( fileName, CV_LOAD_IMAGE_GRAYSCALE );
+	//src = imread( fileName, IMREAD_GRAYSCALE  );
+
+	//src = imread(fileName);
+	//	cv_16u
+	//	https://stackoverflow.com/questions/41186294/opencv-normalization-of-16bit-grayscale-image-gives-weak-result
+	//	https://stackoverflow.com/questions/17345967/normalize-pixel-values-between-0-and-1
+	//	https://opencv.programmingpedia.net/en/tutorial/1957/pixel-access
+	//	https://arato.inf.unideb.hu/szeghalmy.szilvia/kepfeld/diak/szsz_ocv_gyak2.pdf
+	//src = imread(fileName);
+	src = imread(fileName, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
+
+	if (src.empty()) {		
+		exit(-1);
+	}
+
+	//	3x32bitess float
+	src.convertTo(src, CV_32FC3);
+	//	Nem kell leskalazni, bar az is bizonyos mostmar, hogy akkor is marad benne ertekes adat
+	//src.convertTo(src, CV_32FC3, 1.0 / 255.0);
+
+	if (rot) {
+		src = rotate(src, 270);
+	}
+
+	reduceStars( fileName, src );
+
+return 1;
+}
+/***************************************************************************************
+*
+*   function:		clrRGB2HSV
+*   arguments:
+*	description:
+*	globals:
+*	side effect:
+*   return:
+*
+***************************************************************************************/
+int clrRGB2HSV(Scalar colorrgb, Scalar &colorhsv)
+{
+	//	cv::Scalar colorrgb = cv::Scalar(255, 255, 255);
+	//	cv::Scalar colorhsv;
+	//	Mat	mrgb( 1, 1, CV_8UC3, colorrgb );
+	Mat	mrgb(1, 1, CV_8UC3, colorrgb);
+	cvtColor(mrgb, mrgb, CV_BGR2HSV);
+	Vec3b hsv = mrgb.at<Vec3b>(0, 0);
+	int H = hsv.val[ 0 ]; //hue
+	int S = hsv.val[ 1 ]; //saturation
+	int V = hsv.val[ 2 ]; //value
+	colorhsv.val[ 0 ] = H;
+	colorhsv.val[ 1 ] = S;
+	colorhsv.val[ 2 ] = V;
+	return 1;
+}
+/***************************************************************************************
+*
+*   function:		clrHSV2RGB
+*   arguments:
+*	description:
+*	globals:
+*	side effect:
+*   return:
+*
+***************************************************************************************/
+int clrHSV2RGB(Scalar colorhsv, Scalar &colorrgb)
+{
+	//	cv::Scalar colorrgb = cv::Scalar(255, 255, 255);
+	//	cv::Scalar colorhsv;
+	Mat	mrgb(1, 1, CV_8UC3, colorhsv);
+	//	Mat	mrgb( 1, 1, CV_BGR2HSV, colorhsv );
+	//	CV_BGR2HSV
+	//	CV_HSV2BGR
+	cvtColor(mrgb, mrgb, CV_HSV2BGR);
+	Vec3b rgb = mrgb.at<Vec3b>(0, 0);
+	int B = rgb.val[ 0 ]; //hue
+	int G = rgb.val[ 1 ]; //saturation
+	int R = rgb.val[ 2 ]; //value
+	colorrgb.val[ 0 ] = B;
+	colorrgb.val[ 1 ] = G;
+	colorrgb.val[ 2 ] = R;
+	return 1;
+}
+/***************************************************************************************
+*
+*   function:		strechImage
+*   arguments:
+*	description:	
+*	globals:
+*	side effect:
+*   return:
+*
+***************************************************************************************/
+int strechImage(char *fileName, int rot)
+{
+	int		ret = 0;
+	Mat		src;
+
+	int		imtype = CV_32FC3;
+	//int		imtype = CV_8UC3;
+
+	char	szWName0[256] = "1. Elokeszitett(dst)";
+	char	szWName1[256] = "Eredmeny";
+
+	namedWindow("Csuszkak", WINDOW_NORMAL);
+	resizeWindow("Csuszkak", 900, 800);
+
+
+	//src = imread(fileName);
+	//	cv_16u
+	//	https://stackoverflow.com/questions/41186294/opencv-normalization-of-16bit-grayscale-image-gives-weak-result
+	//	https://stackoverflow.com/questions/17345967/normalize-pixel-values-between-0-and-1
+	//	https://opencv.programmingpedia.net/en/tutorial/1957/pixel-access
+	//	https://arato.inf.unideb.hu/szeghalmy.szilvia/kepfeld/diak/szsz_ocv_gyak2.pdf
+	//src = imread(fileName);
+	src = imread(fileName, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
+
+	if (src.empty()) {		
+		exit(-1);
+	}
+
+	//	3x32bitess float
+	src.convertTo(src, CV_32FC3);
+	//	Nem kell leskalazni, bar az is bizonyos mostmar, hogy akkor is marad benne ertekes adat
+	//src.convertTo(src, CV_32FC3, 1.0 / 255.0);
+
+	if (rot) {
+		src = rotate(src, 270);
+	}
+
+
+	if( !DISP_W ) {
+		DISP_W = src.cols;
+	}
+	if( 1 ) {
+		src = ResizeProperSize(src, DISP_W);
+		DISP_W2 = DISP_W;
+	}
+
+
+	int		width = src.cols;
+	int		height = src.rows;
+
+
+	//int		ath_type = ADAPTIVE_THRESH_GAUSSIAN_C;
+	//adaptiveThreshold(dstgrey, dstthres, ivv, ath_type, THRESH_BINARY, 51, ithresval/1000.0 );
+
+
+	//Mat		dst = 5.0 * src;
+	Mat		dst = src.clone();
+
+
+	Scalar	meanRGB = mean( src, noArray() );
+	double	meanavg = (meanRGB.val[0]+meanRGB.val[1]+meanRGB.val[2])/3.0;
+	printf("mean: (%lf, %lf, %lf)", meanRGB.val[0], meanRGB.val[1], meanRGB.val[2] );
+
+	Mat		chns[ 3 ];
+	split( dst, chns );
+
+	double	minVal = 0;
+	double	maxVal = 0;
+	Point	minLoc = 0;
+	Point	maxLoc = 0;
+	double	minValB = 0;
+	minMaxLoc( chns[0], &minVal, &maxVal, &minLoc, &maxLoc, noArray() );
+	minValB = minVal;
+	double	minValG = 0;
+	minMaxLoc( chns[1], &minVal, &maxVal, &minLoc, &maxLoc, noArray() );
+	minValG = minVal;
+	double	minValR = 0;
+	minMaxLoc( chns[2], &minVal, &maxVal, &minLoc, &maxLoc, noArray() );
+	minValR = minVal;
+	minVal = max(minValR, max(minValG, minValB));
+
+	printf("\nminValB: %.4lf minValG: %.4lf minValR: %.4lf", minValB, minValG, minValR);
+	//printf("\nmaxValB: %.4lf maxValG: %.4lf maxValR: %.4lf", minValB, minValG, minValR)
+
+	vector<Point3d> control[ 3 ];
+	//	Ez kivul eshet a vegso keprol
+	//control.push_back( Point3d(minLoc.x, minLoc.y, minVal) );
+
+
+	int		ifmul = 1000. / meanavg;
+	int		ifmulmax = 40000;
+	double	fmul = (double)ifmul/1000.0;//30;
+
+	int		ifsub = 1000.0 * (meanavg/2.0);
+	int		ifsubmax = 4000;
+	double	fsub = (double)ifsub / 1000.0;//0.102;
+
+	int		iautolight = 1;
+
+
+	int		isave = 0;
+	int		isavemax = 1;
+
+
+	int		iBGminus0 = 0;
+	int		igain0 = 1000;
+	int		iBGminus = 0;
+	int		ithres = 30;
+	Mat		src2 = src.clone();
+	Mat		dst1 = src.clone();
+	Mat		dstPar = src.clone();
+	Mat		dstPar2 = src.clone();
+	int		icircles = 1;
+
+	if( 0 ) {
+		int		iinc = 50;
+		for (int i = 0; i < src.cols; i+=iinc ) {
+			for (int j = 0; j < src.rows; j+=iinc) {
+				Vec3f intensity;
+				get3x3Avegrage( dst, i, j, intensity );
+				double	mmin = 0.9;
+				double	mmax = 1.5;
+				if(    intensity.val[0] > mmin * meanRGB.val[0]  &&  intensity.val[0] < mmax * meanRGB.val[0]
+					&& intensity.val[1] > mmin * meanRGB.val[1]  &&  intensity.val[1] < mmax * meanRGB.val[1]
+					&& intensity.val[2] > mmin * meanRGB.val[2]  &&  intensity.val[2] < mmax * meanRGB.val[2]
+				) {
+					control[0].push_back( Point3d(i, j, intensity.val[0] ) );
+					control[1].push_back( Point3d(i, j, intensity.val[1] ) );
+					control[2].push_back( Point3d(i, j, intensity.val[2] ) );
+				}
+			}
+		}
+	}
+
+
+	for( ; ; ) {
+		setMouseCallback( "dst2", CallBackActionFunc, NULL );
+
+		createTrackbar("circles", "Csuszkak", &icircles, 1, on_trackbar);
+
+		//createTrackbar("gain0", "Csuszkak", &igain0, 100000, on_trackbar);
+		double	lfgain0 = (double)igain0 / 1000.0;
+
+		//createTrackbar("BG0", "Csuszkak", &iBGminus0, 3000, on_trackbar);
+		double	lfBGminus0 = (double)iBGminus0 / 2000.0;
+
+
+		createTrackbar("Auto Fenyero", "Csuszkak", &iautolight, 1, on_trackbar);
+		
+
+		//createTrackbar("Thres", "Csuszkak", &ithres, 1000, on_trackbar);
+		//if( !ithres ) {
+		//	ithres = 1;
+		//}
+		//double	lfthres = (double)ithres / 1000.0;
+		createTrackbar("* Fenyero", "Csuszkak", &ifmul, ifmulmax, on_trackbar);
+		fmul = (double)ifmul/1000.0;
+
+		//createTrackbar("BG", "Csuszkak", &iBGminus, 3000, on_trackbar);
+		//double	lfBGminus = (double)iBGminus / 2000.0;
+
+		createTrackbar("- Hatter", "Csuszkak", &ifsub, ifsubmax, on_trackbar);
+		fsub = (double)ifsub/1000.0;
+
+
+		createTrackbar("Save Tif", "Csuszkak", &isave, isavemax, on_trackbar);
+		if( isave ) {
+			isave = 0;
+			char	szFileNameRes[ 256 ];
+			char	*pTmp =strrchr( fileName, '/');
+			memset( szFileNameRes, 0, sizeof( szFileNameRes ) );
+			if( !pTmp) {
+				pTmp = strrchr( fileName, '\\');
+			}
+			if( !pTmp ) {
+				sprintf( szFileNameRes, "%s/res.tif");
+			} else {
+				strncpy( szFileNameRes, fileName, pTmp - fileName );
+				strcat( szFileNameRes, "/res.tif");
+			}
+			int ret = imwrite( szFileNameRes, src2 );
+			printf("");
+		}
+
+
+
+		Mat		dstgrey[ 3 ];
+		Mat		thres[ 3 ];
+		Mat		mask;
+		//if( 0 ) {
+		//	chns[0].convertTo( dstgrey[0], CV_8UC1, 255.0);
+		//	threshold( dstgrey[0], thres[ 0 ], 255.0*lfthres, 255, CV_THRESH_TOZERO);
+		//	chns[1].convertTo( dstgrey[1], CV_8UC1, 255.0);
+		//	threshold( dstgrey[1], thres[ 1 ], 255.0*lfthres, 255, CV_THRESH_TOZERO);
+		//	chns[2].convertTo( dstgrey[2], CV_8UC1, 255.0);
+		//	threshold( dstgrey[2], thres[ 2 ], 255.0*lfthres, 255, CV_THRESH_TOZERO);
+		//	bitwise_and( thres[ 0 ], thres[ 1 ], mask );
+		//	bitwise_and( mask, thres[ 2 ], mask );
+		//}
+		//bitwise_not( mask, mask );
+		//mask = 255 - mask;
+
+		Mat		dst2;
+		//dst2 = (dst - minVal) * (1.0 / lfthres);
+		//dst2 = (src2 - lfthres) * (1.0 / lfthres);
+		//dst2 = (src2 - minVal) * (1.0 / lfthres);
+		//dst2 = (src2 - lfBGminus) * (1.0 / lfthres);
+
+
+		//dst2 = (src2 - fsub) * fmul;		//	Szinez
+		Scalar	scBG = meanRGB * fsub * fmul;	//	Ugyanez nem szinezi el jobban
+		dst2 = src2 * fmul - scBG;
+
+		dst1 = (src  - lfBGminus0) * lfgain0;
+
+
+
+		if( icircles ) {
+			for( int i = 0; i < control[0].size(); i++ ) {
+				circle( dst2, Point(control[0][i].x, control[0][i].y), 10, Scalar(0,0,1), 1 );
+				circle( dst2, Point(control[0][i].x, control[0][i].y),  9, Scalar(1,1,1), 1 );
+				circle( dst2, Point(control[0][i].x, control[0][i].y), 11, Scalar(1,1,1), 1 );
+			}
+		}
+
+		//dstPar2 = (dstPar - lfthres) * (1.0 / lfthres);
+		dstPar2 = dstPar * 8.0;
+
+		//mul8Ux3FC( mask, dst2, dst2 );
+
+
+		imshow("dst", dst );
+		//imshow("dst1", dst1 );
+		//imshow("mask ", mask );
+		imshow("dst2", dst2 );
+		//imshow("dstPar2", dstPar2 );
+
+		//
+		//	Itt a key kezeles!!!
+		//
+		if ((ret = waitKey(30)) >= 0) {
+			if (ret == 27) {
+				//destroyWindow("Csuszkak");
+				//cvReleaseImage(&images[i]);
+				//cvReleaseImage(&images[i]);
+				destroyAllWindows();
+				reduceStars( fileName, src2 );
+				return 0;
+			}
+		}
+		if( act.event == EVENT_LBUTTONDOWN ) {
+		//if( act.event == EVENT_LBUTTONUP ) {
+
+			if( act.pt.x > 0 || act.pt.y > 0) {
+
+				int		idel = 0;
+				for( int i = 0; i < control[0].size(); i++ ) {
+					if( abs( act.pt.x - control[0][0].x ) < 10  &&  abs( act.pt.y - control[0][0].y ) < 10 ) {
+						idel = 1;
+						control[0].erase(control[0].begin() + i);
+						control[1].erase(control[1].begin() + i);
+						control[2].erase(control[2].begin() + i);
+						break;
+					}
+				}
+				if( !idel ) {
+
+					split( src, chns );
+
+					Vec3f intensity;
+					get3x3Avegrage( src, act.pt.x, act.pt.y, intensity );
+
+#define CSAK_V	1
+#if defined(CSAK_V)
+					//	HSV-kent tegyuk el, majd csak a V csatornat hasznaljuk
+					clrRGB2HSV( (Scalar)intensity, (Scalar)intensity );
+#endif
+					//control[0].push_back( Point3d(act.pt.x, act.pt.y, chns[0].at<float>(act.pt.y, act.pt.x)) );
+					//control[1].push_back( Point3d(act.pt.x, act.pt.y, chns[1].at<float>(act.pt.y, act.pt.x)) );
+					//control[2].push_back( Point3d(act.pt.x, act.pt.y, chns[2].at<float>(act.pt.y, act.pt.x)) );
+					control[0].push_back( Point3d(act.pt.x, act.pt.y, intensity.val[0] ) );
+					control[1].push_back( Point3d(act.pt.x, act.pt.y, intensity.val[1] ) );
+					control[2].push_back( Point3d(act.pt.x, act.pt.y, intensity.val[2] ) );
+				
+				}
+				idel = 0;
+				act.pt.x = -1;
+				act.pt.y = -1;
+			}
+
+			if( control[0].size() > 8 ) {
+				Mat		MxTheta;
+				if( 1 ) {
+#if defined(CSAK_V)
+					Mat	hsv;
+					cvtColor( dst, hsv, CV_BGR2HSV);
+					split( hsv, chns );
+
+					for( int i = 0; i < control[0].size(); i++ ) {
+						control[2][ i ].z = chns[ 2 ].at<float>( control[2][i].y, control[2][i].x );
+					}
+					fitParaboloid( control[2], MxTheta );
+					srcMinusParaboloid( chns[2], MxTheta, chns[2] );
+					vector<Mat> channels;
+					channels.push_back(chns[0]);
+					channels.push_back(chns[1]);
+					channels.push_back(chns[2]);
+					merge(channels, hsv);
+
+					cvtColor( hsv, src2, CV_HSV2BGR);
+#else
+					split( src, chns );
+					//
+					//	Csatornankent korrekcio
+					//
+					for( int j = 0; j < 3; j++ ) {
+						for( int i = 0; i < control[0].size(); i++ ) {
+							control[j][ i ].z = chns[ j ].at<float>( control[j][i].y, control[j][i].x );
+						}
+						fitParaboloid( control[j], MxTheta );
+						srcMinusParaboloid( chns[j], MxTheta, chns[j] );
+					}
+
+					//	Levont kep
+					{
+						vector<Mat> channels;
+						channels.push_back(chns[0]);
+						channels.push_back(chns[1]);
+						channels.push_back(chns[2]);
+						merge(channels, src2);
+					}
+#endif
+					//	Paraboloid szine
+					for( int j = 0; j < 3; j++ ) {
+						calcParaboloidScreen( MxTheta, chns[j] );
+						vector<Mat> channels;
+						channels.push_back(chns[0]);
+						channels.push_back(chns[1]);
+						channels.push_back(chns[2]);
+						merge(channels, dstPar );
+					}
+
+					if( iautolight ) {
+						meanRGB = mean( src2, noArray() );
+						meanavg = (meanRGB.val[0]+meanRGB.val[1]+meanRGB.val[2])/3.0;
+						ifmul = 8000. / meanavg;
+						//ifsub = 1000.0 * (0.995*meanavg);
+						ifsub = 1000.0 * (1.02*meanavg);
+					}
+
+					if( 0 ) {
+						//	A minimumot atallitjuk a kontrollpontokban vett ertekek minimumara
+						Vec3f intensity;
+						minVal = 100;
+						for( int j = 0; j < 3; j++ ) {
+							for( int i = 0; i < control[0].size(); i++ ) {
+								get3x3Avegrage( src, control[0][i].x, control[0][i].y, intensity );
+								minVal = min( minVal, (double)intensity.val[ 0 ] );
+								minVal = min( minVal, (double)intensity.val[ 1 ] );
+								minVal = min( minVal, (double)intensity.val[ 2 ] );
+							}
+						}
+					}
+				} else {
+					//
+					//	Minden csatornara a korrekcio atlag
+					//
+					for( int i = 0; i < control[0].size(); i++ ) {
+						for( int j = 0; j < 3; j++ ) {
+							control[j][ i ].z = chns[ j ].at<float>( control[j][i].y, control[j][i].x );
+						}
+						control[0][ i ].z = (control[0][ i ].z + control[1][ i ].z + control[2][ i ].z ) / 3.0;
+						fitParaboloid( control[0], MxTheta );
+						for( int j = 0; j < 3; j++ ) {
+							srcMinusParaboloid( chns[j], MxTheta, chns[j] );
+						}
+					}
+
+					//	Levont kep
+					{
+						vector<Mat> channels;
+						channels.push_back(chns[0]);
+						channels.push_back(chns[1]);
+						channels.push_back(chns[2]);
+						merge(channels, src2);
+					}
+
+					//	Paraboloid szine
+					for( int j = 0; j < 3; j++ ) {
+						calcParaboloidScreen( MxTheta, chns[j] );
+						vector<Mat> channels;
+						channels.push_back(chns[0]);
+						channels.push_back(chns[1]);
+						channels.push_back(chns[2]);
+						merge(channels, dstPar );
+					}
+
+				}
+			}
+		}
+
+	}
+
+
+return 1;
 }
 /***************************************************************************************
 *
@@ -3117,7 +4141,6 @@ int main( int argc, char *argv[] )
 	//char fileName[100] = VPATH"SAM_1206.JPG";
 	//char fileName[100] = VPATH"SAM_1206.JPG";
 	//char fileName[100] = VPATH"SAM_1215.JPG";
-	//char fileName[100] = VPATH"SAM_1282.JPG";
 	//char fileName[100] = VPATH"SAM_1313.JPG";
 	//char fileName[100] = VPATH"SAM_1328.JPG";
 	//char fileName[100] = VPATH"SAM_1633.JPG";
@@ -3185,13 +4208,15 @@ int main( int argc, char *argv[] )
 	//char fileName[100] = VPATH"Autosave001.jpg"; rot = 0;
 	//char fileName[100] = VPATH"AutoRGBAlign001.TIF"; rot = 0;
 	//char fileName[100] = VPATH"20200414_0415_NothAmerica_Pont.png"; rot = 0;
-	//char fileName[100] = VPATH"20200414_0415_NothAmerica_Pont.tif"; rot = 0;
+	//char fileName[100] = VPATH"20200414_0415_NothAmerica_Pont.tif"; rot = 0;							//	!!!
+	char fileName[100] = VPATH"20211002_Mc_Rosetta_0h31med_02.tif"; rot = 0;
+	//char fileName[100] = VPATH"20200414_0415_0420_0421_NorthAmerica_Pont_4grp_chnalign.tif"; rot = 0;
 	//char fileName[100] = VPATH"NorthAmerica1Frame.jpg"; rot = 0;
 	//char fileName[100] = VPATH"20200820_Bp_Adnromeda2.tif"; rot = 0;
 	//char fileName[100] = VPATH"20200820_Bp_Triangulum1.tif"; rot = 0;
 	//char fileName[100] = VPATH"20211028_Mc_Soul_200mm_LDFB3_485min.tif"; rot = 0;
 	//char fileName[100] = VPATH"20211028_Mc_Iris_200mm_03h20m.tif"; rot = 0;
-	char fileName[100] = VPATH"20211028_Mc_FlamingStar_200mm_LDFB2_4h03m.tif"; rot = 0;
+	//char fileName[100] = VPATH"20211028_Mc_FlamingStar_200mm_LDFB2_4h03m.tif"; rot = 0;
 	//char fileName[100] = VPATH"20211028_Mc_Pacman_200mm_LDFB_1h12m.tif"; rot = 0;
 	//char fileName[100] = VPATH"20211008_Elephant300mm35min.tif"; rot = 0;
 	//char fileName[100] = VPATH"20211002_Mc_California_LDFB_1h17_01.tif"; rot = 0;
@@ -3207,17 +4232,26 @@ int main( int argc, char *argv[] )
 	//char fileName[100] = VPATH"20211002_Mc_ngc7822_1h21_01.tif"; rot = 0;
 	//char fileName[100] = VPATH"20200403_Sadr.tif"; rot = 0;
 	//char fileName[100] = VPATH"Orion300sec.tif"; rot = 0;
-	//char fileName[100] = VPATH"Autosave_LEO.tif"; rot = 0;
+//	//char fileName[100] = VPATH"Autosave_LEO.tif"; rot = 0;
 	//char fileName[100] = VPATH"Autosave001_Whirlpool.tif"; rot = 0;
 	//char fileName[100] = VPATH"Autosave002_Pinwheel.tif"; rot = 0;
 	//char fileName[100] = VPATH"20200327_Pinwheel_Allin.tif"; rot = 0;
 	//char fileName[100] = VPATH"20200327_Iris_2.tif"; rot = 0;
 	//char fileName[100] = VPATH"Whirlpool_Pont_20200315&18&19.tif"; rot = 0;
-//	//char fileName[100] = VPATH"20200411_M106all.tif"; rot = 0;
+	//char fileName[100] = VPATH"20200411_M106all.tif"; rot = 0;
 	//char fileName[100] = VPATH"20200327_0410_0411_0414_Pinwheel_Pont.tif"; rot = 0;
 	//char fileName[100] = VPATH"20200608_Bp_ngc7129.tif"; rot = 0;
 	//char fileName[100] = VPATH"20200812_Mc_MW.tif"; rot = 0;
 	//char fileName[100] = VPATH"20200819_20211002_Cailif_2h24m.tif"; rot = 0;
+	//char fileName[100] = VPATH"20194026_Orion.tif"; rot = 0;
+	//char fileName[100] = VPATH"20191026_Pleiades.tif"; rot = 0;
+	//char fileName[100] = VPATH"20191026_Andromeda.tif"; rot = 0;
+	//char fileName[100] = VPATH"200101_Bp_BodeCigar.tif"; rot = 0;
+	//char fileName[100] = VPATH"20220106_Pilisszentlelet_Orion_50mm_1h31m_L.tif"; rot = 0;
+	//char fileName[100] = VPATH"PoGe_Orion_1.TIF"; rot = 0;
+
+	
+
 	
 
 
@@ -3234,6 +4268,9 @@ int main( int argc, char *argv[] )
 		strcpy( szDISP_W, argv[2]);
 		//disp_w = atoi( szDISP_W );
 		DISP_W = atoi( szDISP_W );
+		if( !DISP_W ) {
+			DISP_W = 1100;
+		}
 		//printf( "\nFelbontas: %d", disp_w);
 		printf( "\nFelbontas: %d", DISP_W);
 	}
@@ -3265,7 +4302,12 @@ pszTxt = (char *)realloc( pszTxt, 16 );
 free( pszTxt );
 */	
 	
-
+	if( 0 ) {
+		Mat		MxTheta;
+		vector<Point3d> control;
+		fitParaboloid( control, MxTheta );
+		exit(1);
+	}
 
 
 	if (0) {
@@ -3278,6 +4320,7 @@ free( pszTxt );
 		filterSpectrum(fileName, rot);
 	}
 	if( 0 ) {
+		char fileName[100] = VPATH"SAM_1282.JPG";
 		CurveFilter(fileName, rot);
 	}
 	if (0) {
@@ -3286,8 +4329,13 @@ free( pszTxt );
 	if (0) {
 		cv_16UNormalization(fileName, rot);
 	}
-	if (1) {
-		reduceStars(fileName, rot);
+	if( 1 ) {
+		strechImage( fileName, rot );
+		exit(1);
+	}
+	if( 0 ) {
+		//reduceStars(fileName, rot);
+		reduceStarsLoad(fileName, rot);
 	}
 	return 0;
 }
