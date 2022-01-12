@@ -3946,11 +3946,60 @@ int strechImage(char *fileName, int rot)
 	Mat		dstPar2 = src.clone();
 	int		icircles = 1;
 
+	Mat		dst2;
+	Scalar	scBG = meanRGB * fsub * fmul;	//	Ugyanez nem szinezi el jobban
+	dst2 = src2 * fmul - scBG;
+
+
+
+	//	Kontrollpont hatarok beallitasa
+	Point2d		control0[ 2 ];
+	control0[ 0 ] = Point2d( 0, 0);
+	control0[ 1 ] = Point2d( src.cols-1, src.rows-1);
+	int			cidx = 1;
+	for( ; ; ) {
+		dst2 = src2 * fmul - scBG;
+		setMouseCallback( "dst2", CallBackActionFunc, NULL );
+
+		if( act.event == EVENT_LBUTTONDOWN ) {
+
+			if( act.pt.x > 0 || act.pt.y > 0) {
+
+				cidx = 1 - cidx;
+				control0[ cidx ] = Point2d(act.pt.x, act.pt.y);
+				
+				act.pt.x = -1;
+				act.pt.y = -1;
+			}
+		}
+		circle( dst2, Point(control0[0].x, control0[0].y), 10, Scalar(0,0,1), 1 );
+		circle( dst2, Point(control0[0].x, control0[0].y),  9, Scalar(1,1,1), 1 );
+		circle( dst2, Point(control0[0].x, control0[0].y), 11, Scalar(1,1,1), 1 );
+
+		circle( dst2, Point(control0[1].x, control0[1].y), 10, Scalar(0,0,1), 1 );
+		circle( dst2, Point(control0[1].x, control0[1].y),  9, Scalar(1,1,1), 1 );
+		circle( dst2, Point(control0[1].x, control0[1].y), 11, Scalar(1,1,1), 1 );
+		imshow("dst2", dst2 );
+		if ((ret = waitKey(30)) >= 0) {
+			if (ret == 27) {
+				destroyAllWindows();
+				break;
+			}
+		}
+	}
+	int		ii0 = min( control0[0].x, control0[1].x);
+	int		ii1 = max( control0[0].x, control0[1].x);
+	int		jj0 = min( control0[0].y, control0[1].y);
+	int		jj1 = max( control0[0].y, control0[1].y);
+
+	//	A kontrollpont hatarok felhasznalasaval kontrollhalo letrehozas
 	if( 1 ) {
-		int		ii0 = 10;
+		//int		ii0 = 10;
 		int		iinc = 15;
-		for (int i = ii0; i < src.cols - ii0; i+=iinc ) {
-			for (int j = ii0; j < src.rows - ii0; j+=iinc) {
+		//for (int i = ii0; i < src.cols - ii0; i+=iinc ) {
+		//	for (int j = ii0; j < src.rows - ii0; j+=iinc) {
+		for (int i = ii0; i < ii1; i+=iinc ) {
+			for (int j = jj0; j < jj1; j+=iinc) {
 				Vec3f intensity;
 				get3x3Avegrage( dst, i, j, intensity );
 				double	mmin = 0.9;
@@ -4035,7 +4084,6 @@ int strechImage(char *fileName, int rot)
 		//bitwise_not( mask, mask );
 		//mask = 255 - mask;
 
-		Mat		dst2;
 		//dst2 = (dst - minVal) * (1.0 / lfthres);
 		//dst2 = (src2 - lfthres) * (1.0 / lfthres);
 		//dst2 = (src2 - minVal) * (1.0 / lfthres);
@@ -4331,7 +4379,7 @@ int main( int argc, char *argv[] )
 	//char fileName[100] = VPATH"Autosave001.jpg"; rot = 0;
 	//char fileName[100] = VPATH"AutoRGBAlign001.TIF"; rot = 0;
 	//char fileName[100] = VPATH"20200414_0415_NothAmerica_Pont.png"; rot = 0;
-	//char fileName[100] = VPATH"20200414_0415_NothAmerica_Pont.tif"; rot = 0;							//	!!!
+	char fileName[100] = VPATH"20200414_0415_NothAmerica_Pont.tif"; rot = 0;							//	!!!
 	//char fileName[100] = VPATH"20211002_Mc_Rosetta_0h31med_02.tif"; rot = 0;
 	//char fileName[100] = VPATH"20200414_0415_0420_0421_NorthAmerica_Pont_4grp_chnalign.tif"; rot = 0;
 	//char fileName[100] = VPATH"NorthAmerica1Frame.jpg"; rot = 0;
@@ -4370,7 +4418,7 @@ int main( int argc, char *argv[] )
 	//char fileName[100] = VPATH"20191026_Pleiades.tif"; rot = 0;
 	//char fileName[100] = VPATH"20191026_Andromeda.tif"; rot = 0;
 	//char fileName[100] = VPATH"200101_Bp_BodeCigar.tif"; rot = 0;
-	char fileName[100] = VPATH"20220106_Pilisszentlelet_Orion_50mm_1h31m_L.tif"; rot = 0;
+	//char fileName[100] = VPATH"20220106_Pilisszentlelet_Orion_50mm_1h31m_L.tif"; rot = 0;
 	//char fileName[100] = VPATH"20220106_Pilisszentlelet_Orion_50mm_2.tif"; rot = 0;		
 	//char fileName[100] = VPATH"PoGe_Orion_1.TIF"; rot = 0;
 	//char fileName[100] = VPATH"SZG_Cepheus.tif"; rot = 0;
