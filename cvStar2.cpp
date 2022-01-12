@@ -2109,6 +2109,7 @@ int get3x3Avegrage( Mat src, int x, int y, Vec3f &intensity ) {
 	for( int i = max(0,x-isav); i < min( x+isav, src.cols); i++ ) {
 		for( int j = max(0,y-isav); j < min( y+isav, src.rows); j++ ) {
 			intensity_tmp0 = src.at<Vec3f>(j, i);
+			//	Csak a nem 0 erteku pont szinekbol kepzunk atlagot
 			if( intensity_tmp0.val[0]  ||  intensity_tmp0.val[1] || intensity_tmp0.val[2] ) {
 				intensity_tmp1.val[ 0 ] = intensity_tmp1.val[ 0 ] + intensity_tmp0.val[ 0 ];
 				intensity_tmp1.val[ 1 ] = intensity_tmp1.val[ 1 ] + intensity_tmp0.val[ 1 ];
@@ -2231,7 +2232,8 @@ int whiteBalancePt( Mat src, Mat &dst, Point2i pt )
 {
 	dst = src.clone();
 	//	WhiteBalance faktorok szamitasa
-	Vec3f  fact;
+	Vec3f	fact;
+	Scalar	fact2;
 	//Vec3f  intensity = src.at<Vec3f>(pt.y, pt.x);
 	Vec3f  intensity;
 	get3x3Avegrage( src, pt.x, pt.y, intensity );
@@ -2249,18 +2251,39 @@ int whiteBalancePt( Mat src, Mat &dst, Point2i pt )
 	//	A reszuk a teljes aranyaban
 	if( Red ) {
 		fact[0] = (Red + Green + Blue) / Red;
+		fact2.val[ 0 ] = (Red + Green + Blue) / Red;;
 	}
 	if( Green ) {
 		fact[1]	= (Red + Green + Blue) / Green;
+		fact2.val[ 1 ] = (Red + Green + Blue) / Green;
 	}
 	if( Blue ) {
 		fact[2] =  (Red + Green + Blue) / Blue;
+		fact2.val[ 2 ] = (Red + Green + Blue) / Blue;
 	}
 
 
-	//	WhiteBalance vegrahajtasa, kozben akkor mar megkeresem a minimum es 
-	//	maximum ertekeket (de ez nem szinkomponensenkent kellene csinalni valszeg) 
-	if( 1 ) {
+	//dst = src * fact2;
+	//dst = src - fact2;
+
+	//Scalar	scBG = meanRGB * fsub * fmul;	//	Ugyanez nem szinezi el jobban
+	//dst = dst0 * fmul - scBG;
+
+	Mat		chns[ 3 ];
+	split( src, chns );
+
+	chns[0] *= fact.val[0];
+	chns[1] *= fact.val[1];
+	chns[2] *= fact.val[2];
+
+	vector<Mat> channels;
+	channels.push_back(chns[0]);
+	channels.push_back(chns[1]);
+	channels.push_back(chns[2]);
+	merge(channels, dst);
+
+
+	if( 0 ) {
 		for (int i = 0; i < dst.cols; i++) {
 			for (int j = 0; j < dst.rows - 0; j++) {
 				Vec3f  intensity = dst.at<Vec3f>(j, i);
@@ -2283,7 +2306,7 @@ return 1;
 *
 *   function:		starMaskTresh
 *   arguments:
-*	description:	
+*	description:	Helyettesitheto a fastThreshOnImg32FC3()-vel, ami gyors
 *	globals:
 *	side effect:
 *   return:
@@ -2585,52 +2608,32 @@ int removeLittleStars( Mat src, float fedge, float fmin, int idilate, Mat &dstRe
 	}
 
 	dstWHole = src.clone();
-	if( 0 ) {
-		//dstIsHole.zeros(src.rows, src.cols, CV_32FC3 );
-		dstIsHole.zeros(src.rows, src.cols, CV_8UC1 );		
-		for (int i = 0; i < src.cols; i++) {
-			for (int j = 0; j < src.rows - 0; j++) {
-				Vec3f  intensity = dstEdge.at<Vec3f>(j, i);
-				if( intensity.val[0] > fmin  ||  intensity.val[1] > fmin  ||  intensity.val[2]  > fmin ) {
-					dstWHole.at<Vec3f>(j, i) = {0,0,0};
-					dstIsHole.at<uchar>(j, i) = 255;
-				} else {
-				}
-			}
-		}
-		dstHole2 = dstWHole.clone();
-		dstRes = dstWHole.clone();
-		//replaceHole( dstWHole, dstIsHole, dstRes, 1 );
-		dstHole2 = dstRes.clone();
 
+	Mat		chns[ 3 ];
+	Mat		hsv;
+	cvtColor( dstEdge, hsv, CV_BGR2HSV);
+	split( hsv, chns );
+	threshold( chns[ 2 ], dstIsHole, fmin, 255, CV_THRESH_BINARY );
+	dstIsHole.convertTo(dstIsHole, CV_8UC1, 255.0);
+
+
+	dstRes = src.clone();
+	Mat	mloc2( src.size(), CV_32FC3 );
+	mloc2.setTo( Scalar( 0, 0, 0) );
+
+	bitwise_and( src, mloc2, dstWHole, dstIsHole );
+
+	dstHole2 = dstWHole.clone();
+	dstRes = dstWHole.clone();
+	if( 1 ) {
+		replaceHole( dstWHole, dstIsHole, dstRes, 1 );
 	} else {
-		Mat		chns[ 3 ];
-		Mat		hsv;
-		cvtColor( dstEdge, hsv, CV_BGR2HSV);
-		split( hsv, chns );
-		threshold( chns[ 2 ], dstIsHole, fmin, 255, CV_THRESH_BINARY );
-		dstIsHole.convertTo(dstIsHole, CV_8UC1, 255.0);
-
-//imshow( "kiscsilalg", dstIsHole );
-
-		dstRes = src.clone();
-		Mat	mloc2( src.size(), CV_32FC3 );
-		mloc2.setTo( Scalar( 0, 0, 0) );
-
-		bitwise_and( src, mloc2, dstWHole, dstIsHole );
-
-		dstHole2 = dstWHole.clone();
-		dstRes = dstWHole.clone();
-		if( 1 ) {
-			replaceHole( dstWHole, dstIsHole, dstRes, 1 );
-		} else {
-			dstWHole.convertTo(dstWHole, CV_8UC3, 255.0);
-			//	Csak 8 bites-re mukodik
-			inpaint( dstWHole, dstIsHole, dstRes, 3 + idilate, INPAINT_TELEA );
-		}
-		dstHole2 = dstRes.clone();
-
+		dstWHole.convertTo(dstWHole, CV_8UC3, 255.0);
+		//	Csak 8 bites-re mukodik
+		inpaint( dstWHole, dstIsHole, dstRes, 3 + idilate, INPAINT_TELEA );
 	}
+	dstHole2 = dstRes.clone();
+
 
 
 return 1;
@@ -2744,8 +2747,148 @@ return 1;
 *
 *   function:		
 *   arguments:
+*	description:
+*	globals:
+*	side effect:
+*
+*   return:
+*
+***************************************************************************************/
+int clrBlur( Mat src, Mat &dst, int iclrblur, float lfsaturate )
+{
+	Mat		hsv;
+	cvtColor( src, hsv, CV_BGR2HSV );
+	Mat		chns[ 3 ];
+	split( hsv, chns );
+
+
+	chns[ 1 ] = lfsaturate * chns[ 1 ];
+	if( iclrblur > 0 ) {
+		//GaussianBlur( chns[ 0 ], chns[ 0 ], cv::Size(iclrblur, iclrblur), 0, 0 );
+		//medianBlur( chns[ 0 ], chns[ 0 ], iclrblur );
+		//bilateralFilter( chns[ 0 ], chns[ 0 ], iclrblur, iclrblur, iclrblur );
+		blur( chns[ 0 ], chns[ 0 ], Size( iclrblur, iclrblur ), Point(-1,-1) );
+		blur( chns[ 1 ], chns[ 1 ], Size( iclrblur, iclrblur ), Point(-1,-1) );
+	}
+
+	vector<Mat> channels;
+	channels.push_back(chns[0]);
+	channels.push_back(chns[1]);
+	channels.push_back(chns[2]);
+	merge(channels, hsv);
+	cvtColor( hsv, dst, CV_HSV2BGR );
+
+return 1;
+}
+/***************************************************************************************
+*
+*   function:		
+*   arguments:
+*	description:
+*	globals:
+*	side effect:
+*
+*   return:
+*
+***************************************************************************************/
+int clrBlurWeightedByValue( Mat src, Mat &dst, int iclrblur, float lfsaturate )
+{
+	Mat		hsv;
+	cvtColor( src, hsv, CV_BGR2HSV );
+	Mat		chns[ 3 ];
+	split( hsv, chns );
+
+	if( iclrblur < 3 ) {
+		return 1;
+	}
+
+/*
+	//	Minel nagyobb a kulonbseg a hsh(v) ertekben annal kevesbe szamitson a kornyezo hsv(h)
+	//	a simitasnal
+	//	
+	//	absdiff( hsv(v), gauss( hsv(v) ), dv );
+	//	dv = 1 - dv;
+	//	dh = hsv(h).mul( dv );
+	//	bh = dv.mul( gauss( hsv(h) )
+	//	hsv(h) += bh:	???
+
+
+*/
+
+	Mat		mvgauss;
+	Mat		mhgauss;
+	Mat		dv;
+	Mat		dh;
+	Mat		dh2;
+
+/*
+	//	Vgauss
+	//iclrblur = 3;
+	GaussianBlur( chns[ 2 ], mvgauss, cv::Size(iclrblur, iclrblur), 0);
+	//	V - Vgauss
+	absdiff( chns[ 2 ], mvgauss, dv );
+	dv = 1 - dv;
+	//	H * dv
+	//dh = chns[ 0 ].mul( dv );
+	//	Hgauss
+	GaussianBlur( chns[ 0 ], mhgauss, cv::Size(iclrblur, iclrblur), 0);
+	//	H - Hgauss
+	dh2 = chns[ 0 ] - mhgauss;
+	//	dV * Hgauss
+	Mat	bh = dv.mul( mhgauss );
+	//	hsv(h) += bh:	???
+	chns[ 0 ] += lfsaturate * bh;
+*/
+	GaussianBlur( chns[ 0 ], chns[ 0 ], cv::Size(iclrblur, iclrblur), 0);
+	GaussianBlur( chns[ 1 ], chns[ 1 ], cv::Size(iclrblur, iclrblur), 0);
+	//GaussianBlur( chns[ 2 ], chns[ 2 ], cv::Size(iclrblur, iclrblur), 0);
+	vector<Mat> channels;
+	channels.push_back(chns[0]);
+	channels.push_back(chns[1]);
+	channels.push_back(chns[2]);
+	merge(channels, hsv);
+	cvtColor( hsv, dst, CV_HSV2BGR );
+
+return 1;
+}
+/***************************************************************************************
+*
+*   function:		
+*   arguments:
+*	description:
+*	globals:
+*	side effect:
+*
+*   return:
+*
+***************************************************************************************/
+int colorMix( Mat src, Mat&dst, double lfRed, double lfGreen, double lfBlue )
+{
+//	Scalar	rgb( lfBlue, lfGreen, lfRed);
+//	dst = rgb * src; 
+
+	Mat		rgb[ 3 ];
+	split( src, rgb );
+
+	rgb[ 0 ] *= lfBlue;
+	rgb[ 1 ] *= lfGreen;
+	rgb[ 2 ] *= lfRed;
+
+	vector<Mat> channels;
+	channels.push_back(rgb[0]);
+	channels.push_back(rgb[1]);
+	channels.push_back(rgb[2]);
+	merge(channels, dst);
+
+return 1;
+}
+/***************************************************************************************
+*
+*   function:		
+*   arguments:
 *					src1 - eredeeti kep
 *					src2 - lyukacsos kep
+*					src3 - simitott kep
 *					mask - csillag maszk
 *					dstRes - eredmeny
 *	description:
@@ -2755,7 +2898,7 @@ return 1;
 *   return:
 *
 ***************************************************************************************/
-int fastCopyByMask32FC3( Mat src1, Mat src2, Mat &dstRes, Mat mask )
+int fastCopyByMask32FC3( Mat src1, Mat src2, Mat src3, double thresval, double lfgain, Mat &dstRes, Mat mask )
 {
 	string	str;
 	//str = type2str( chns[ 0 ] );
@@ -2769,7 +2912,18 @@ int fastCopyByMask32FC3( Mat src1, Mat src2, Mat &dstRes, Mat mask )
 			if( !intensity_mask ) {
 				dstRes.at<Vec3f>(j, i) = src2.at<Vec3f>(j, i);
 			} else {
-				dstRes.at<Vec3f>(j, i) = src1.at<Vec3f>(j, i);
+				//dstRes.at<Vec3f>(j, i) = lfgain * src1.at<Vec3f>(j, i);
+				//dstRes.at<Vec3f>(j, i) = lfgain * (src1.at<Vec3f>(j, i) - thresval) + thresval;
+				//dstRes.at<Vec3f>(j, i)[0] = lfgain * (src1.at<Vec3f>(j, i)[0] - thresval) + thresval;
+				//dstRes.at<Vec3f>(j, i)[1] = lfgain * (src1.at<Vec3f>(j, i)[1] - thresval) + thresval;
+				//dstRes.at<Vec3f>(j, i)[2] = lfgain * (src1.at<Vec3f>(j, i)[2] - thresval) + thresval;
+				Vec3f		intensity_star = src1.at<Vec3f>(j, i);
+				Vec3f		intensity_smooth = src3.at<Vec3f>(j, i);
+				intensity_star = lfgain * (intensity_star - intensity_smooth) + intensity_smooth;
+				//intensity_star[ 0 ] = lfgain * (intensity_star[0] - thresval) + thresval;
+				//intensity_star[ 1 ] = lfgain * (intensity_star[1] - thresval) + thresval;
+				//intensity_star[ 2 ] = lfgain * (intensity_star[2] - thresval) + thresval;
+				dstRes.at<Vec3f>(j, i) = intensity_star;
 			}			
 		}
 	}
@@ -2963,9 +3117,13 @@ int reduceStars( char *fileName, Mat src )
 	//int		ithresval = 0;
 	double	thresval = (double)ithresval / (double)1000.0;
 
-	int		ierode = 16 * (double)DISP_W / (double)1600;
+	int		ierode = 2;//16 * (double)DISP_W / (double)1600;
 	//int		ierode = 0;
 	int		ierodemax = 100;
+
+	int		istargainmax = 1000;
+	int		istargain = 1000;
+	double	lfstargain = (double)istargain / 1000.0;
 
 
 	int		iStarDiv = 1000;
@@ -3006,11 +3164,29 @@ int reduceStars( char *fileName, Mat src )
 	int		ifsubmax2 = 1000;
 	double	fsub2 = (double)ifsub / 1000.0;//0.102;
 
-	int		iimg = 1;
+	int		iclrblur0 = 0;
+	int		iclrblur = 3;
+	int		iclrblurmax = 10;
+
+	int		isaturatemax = 2500;
+	int		isaturate = isaturatemax / 2.5;
+	double	lfsaturate = isaturate / 1000.0;
+
 	int		iimgmax = 5;
+	int		iimg = iimgmax;
 
 	int		isave = 0;
 	int		isavemax = 1;
+
+	int		iRedmax   = 200;
+	int		iRed      = iRedmax / 2.0;
+	double	lfRed     = (double)iRed / 100.0;
+	int		iGreenmax = 200;
+	int		iGreen    = iGreenmax / 2.0;
+	double	lfGreen   = (double)iGreen / 100.0;
+	int		iBluemax  = 200;
+	int		iBlue     = iBluemax / 2.0;
+	double	lfBlue    = iBlue / 100.0;
 
 
 	Mat dstmask( src.size(), CV_8UC1, Scalar(0) );
@@ -3034,6 +3210,12 @@ int reduceStars( char *fileName, Mat src )
 	for( ; ; ) {
 		setMouseCallback( szWName0, CallBackActionFunc, NULL );
 		
+		if( act.event == EVENT_LBUTTONDOWN ) {
+		//if( act.event == EVENT_LBUTTONUP ) {
+			whiteBalancePt( src, dst0, act.pt );
+			meanRGB = mean( dst0, noArray() );
+		}
+		circle( dst, act.pt, 10, Scalar(0,0,1), 1 );
 
 
 		//	Alap gain minden elott
@@ -3066,11 +3248,15 @@ int reduceStars( char *fileName, Mat src )
 		//	azokra egy kulon nagyobb dilate legyen kiadhato, mert most a kozepes csillagok maszkaja 
 		//	tul sokkal no, alig marad a kornyezetben helyettesitoertek
 
+		createTrackbar("STAR gain", "Csuszkak", &istargain, istargainmax, on_trackbar);
+		lfstargain = (double)istargain / 1000.0;
+
+
 		static	int iDoProc = 0;
 		if( !inproc ) {
 			iDoProc = 0;
 		}
-		createTrackbar("Csinald!", "Csuszkak", &iDoProc, 1, on_trackbar);
+		//createTrackbar("Csinald!", "Csuszkak", &iDoProc, 1, on_trackbar);
 
 
 
@@ -3093,16 +3279,16 @@ int reduceStars( char *fileName, Mat src )
 
 		//	A kisebb csillagokat "elkeresessel" talaljuk meg. 
 		//	Az fedge erteke 1.0 es 2.0 kozott a legjobb
-		createTrackbar("star elek", "Csuszkak", &iedge, iedgemax, on_trackbar);
-		fedge = (double)iedge/1000.0;
+		//createTrackbar("star elek", "Csuszkak", &iedge, iedgemax, on_trackbar);
+		//fedge = (double)iedge/1000.0;
 
 		//	A kisebb csillagokat "elkeresessel" talaljuk meg. 
 		//	Az fedge erteke 1.0 es 2.0 kozott a legjobb
 		createTrackbar("star vagas", "Csuszkak", &ifmin, ifminmax, on_trackbar);
 		fmin = (double)ifmin / (double)ifminmax;
 
-		createTrackbar("star ele2", "Csuszkak", &iedge2, iedgemax2, on_trackbar);
-		fedge2 = (double)iedge2/1000.0;
+		//createTrackbar("star ele2", "Csuszkak", &iedge2, iedgemax2, on_trackbar);
+		//fedge2 = (double)iedge2/1000.0;
 
 		createTrackbar("star vaga2", "Csuszkak", &ifmin2, ifminmax2, on_trackbar);
 		fmin2 = (double)ifmin2 / (double)ifminmax2;
@@ -3119,6 +3305,19 @@ int reduceStars( char *fileName, Mat src )
 		//	A "gorbezes" szorzoja elott egy alapertek kivonas
 		createTrackbar("- Hatter2", "Csuszkak", &ifsub2, ifsubmax2, on_trackbar);
 		fsub2 = (double)ifsub2/1000.0;
+
+		createTrackbar("Clr blur", "Csuszkak", &iclrblur0, iclrblurmax, on_trackbar);
+		iclrblur = iclrblur0*2+1;
+
+		createTrackbar("Saturate", "Csuszkak", &isaturate, isaturatemax, on_trackbar);
+		lfsaturate = isaturate / 1000.0;
+
+		createTrackbar("Red", "Csuszkak", &iRed, iRedmax, on_trackbar);
+		lfRed     = (double)iRed / 100.0;
+		createTrackbar("Green", "Csuszkak", &iGreen, iGreenmax, on_trackbar);
+		lfGreen   = (double)iGreen / 100.0;
+		createTrackbar("Blue", "Csuszkak", &iBlue, iBluemax, on_trackbar);
+		lfBlue    = iBlue / 100.0;
 
 
 		createTrackbar("kepvalto", "Csuszkak", &iimg, iimgmax, on_trackbar);
@@ -3150,6 +3349,9 @@ int reduceStars( char *fileName, Mat src )
 
 
 
+		//
+		//	adaptiveThreshold minta
+		//
 		if( 0 ) {
 			Mat dstgrey;
 			Mat	dst8;
@@ -3191,94 +3393,19 @@ int reduceStars( char *fileName, Mat src )
 
 
 
-		if( 0 ) {
-			if( 1 && ithresval ) {
-				starMaskTresh( dst0, dstmask, thresval );
-				if( !iDoProc ) {
-					if( ierode ) {
-						erode( dstmask, dstmask, getStructuringElement( MORPH_ELLIPSE, Size(ierode, ierode) ) );
-					}
-				}
-				//bitwise_not( dstmask, dstmask );
-				//mul8Ux3FC( dstmask, dst, dstHoleSTAR );
-				//	A nagy csillagok maszkja levonva az alapbol
-				//bitwise_and( dst, dst, dstHoleSTAR, dstmask );
-				//bitwise_and( dst0, dst0, dstHoleSTAR, dstmask );
-				dstHoleSTAR = dstmask.clone();
-			}
-		} else {
-			if( 1 ) {
-				fastThreshOnImg32FC3( dst0, dst, thresval, ierode, dstmask, dstHoleSTAR );
-			} else {
-				Mat		chns[ 3 ];
-				Mat		hsv;
-				cvtColor( dst0, hsv, CV_BGR2HSV);
-				//split( dst0, chns );
-				split( hsv, chns );
-				//minMaxLoc( chns[0], &minVal, &maxVal, &minLoc, &maxLoc, noArray() );
-				string	str;
-				str = type2str( chns[ 0 ] );
-				Mat		maskloc[ 3 ];
-				//chns[0].convertTo(chns[0], CV_8UC1, 255.0);
-				//chns[1].convertTo(chns[1], CV_8UC1, 255.0);
-				//chns[2].convertTo(chns[2], CV_8UC1, 255.0);
-
-				minMaxLoc( chns[2], &minVal, &maxVal, &minLoc, &maxLoc, noArray() );
-
-				threshold( chns[ 2 ], maskloc[ 0 ], thresval, 1, CV_THRESH_BINARY_INV );
-				//threshold( chns[ 0 ], maskloc[ 0 ], (int)(255.0*0.006), 255, CV_THRESH_BINARY_INV );
-				//threshold( chns[ 0 ], maskloc[ 0 ], 1, 255, CV_THRESH_BINARY_INV );
-				//str = type2str( maskloc[ 0 ] );
-				//minMaxLoc( maskloc[0], &minVal, &maxVal, &minLoc, &maxLoc, noArray() );
-
-				//threshold( chns[ 1 ], maskloc[ 1 ], thresval, 1, CV_THRESH_BINARY_INV );
-				//threshold( chns[ 2 ], maskloc[ 2 ], thresval, 1, CV_THRESH_BINARY_INV );
-				//bitwise_or( maskloc[ 0 ], maskloc[ 1 ], maskloc[ 0 ] );
-				//bitwise_or( maskloc[ 0 ], maskloc[ 2 ], dstmask    );
-				dstmask = maskloc[ 0 ].clone();
-
-				if( ierode ) {
-					erode( dstmask, dstmask, getStructuringElement( MORPH_ELLIPSE, Size(ierode, ierode) ) );
-				}
-
-				//dstmask = maskloc[ 0 ].clone();
-				//bitwise_not( dstmask, dstmask );
-
-				str = type2str( dstmask );
-				//str = type2str( dstHoleSTAR );
-				//cvtColor( dstmask, dstmask, CV_BGR2GRAY );
-				//str = type2str( dstmask );
-				//dstmask.convertTo(dstmask, CV_8UC1 );
-				dstmask.convertTo(dstmask, CV_8UC1, 255.0);
-				minMaxLoc( dstmask, &minVal, &maxVal, &minLoc, &maxLoc, noArray() );
-				dstHoleSTAR = dst.clone();
-				str = type2str( dstHoleSTAR );
-				Mat	mloc2( src.size(), CV_32FC3 );
-				//mloc2.setTo( Scalar( 1, 1, 1) );
-				mloc2.setTo( Scalar( 0, 0, 0) );
-				bitwise_not( dstmask, dstmask );
-
-				bitwise_and( dstHoleSTAR, mloc2, dstHoleSTAR, dstmask );
-				//bitwise_and( dstHoleSTAR, dstHoleSTAR, dstHoleSTAR, dstmask );
-				//bitwise_and( dstHoleSTAR, dstmask, dstHoleSTAR );
-				//dstHoleSTAR = dstmask.clone();
-				//str = type2str( dstHoleSTAR );
-				//threshold( dst0, dstHoleSTAR, thresval, 255, CV_THRESH_TOZERO );
-				dstHole3 = dstHoleSTAR.clone();
-			}
+		//
+		//	Nagy csillagok fenyero szerinti keresese
+		//	
+		if( 1 ) {
+			fastThreshOnImg32FC3( dst0, dst, thresval, ierode, dstmask, dstHoleSTAR );
 		}
 
 
 
 		//	Kicsike es kozepes csillagok lyuka
 		if( 1 ) {
-				//removeLittleStars( dst       , fedge, fmin, iedgedilate, dstResAvg1, dstEdge1, dstHole1, dstHole2, dstIsHole );
 			removeLittleStars( dst       , fedge , fmin ,           0, dstResAvg1, dstEdge1, dstHole1, dstHole2, dstIsHole );
-				//holeLittleStars( dst, fedge, fmin,           0, dstHole1, dstIsHole1 );
-				//replaceHole( dstHole1, dstIsHole, dstResAvg, 1 );
 			removeLittleStars( dstResAvg1, fedge2, fmin2, iedgedilate, dstResAvg , dstEdge2, dstHole2, dstHole3, dstIsHole );
-				//holeLittleStars( dst, fedge, fmin, iedgedilate, dstHole2, dstIsHole2 );
-				//replaceHole( dstHole1, dstIsHole, dstResAvg, 1 );
 		}
 
 
@@ -3291,6 +3418,11 @@ int reduceStars( char *fileName, Mat src )
 			Mat	dstBlob( dst.size(), CV_8UC1, Scalar(0) );
 			Mat1i	labelImage, stats;
 			if( 1 ) {
+				//
+				//	Kis mereture skalazott kepen is ugyanaz az eredmeny es nem rosszabb, csak nem pontosan kor lesz 
+				//	az egesznek a vege, mikor visszaskalazzuk.
+				//	Viszont igy sokkal gyorsabb!
+				//
 #define		SIZETMB	200
 				Mat dstmask_loc;
 				dstmask_loc = ResizeProperSize(dstmask, SIZETMB);
@@ -3336,17 +3468,13 @@ int reduceStars( char *fileName, Mat src )
 		//
 		//	A nagy csillagokat visszatesszuk
 		//
-		//dstResAvg = dst.clone();
-		//dstResAvgPost = dst.clone();
-		//dstHole3 = dst.clone();
-		//bitwise_or( dst, dstResAvg, dstResAvg, dstmask );
-		//bitwise_or( dst, dst, dstResAvg, dstmask );
-		fastCopyByMask32FC3( dst, dstHole3, dstResAvg, dstmask );
-		//fastCopyByMask32FC3( dst, dstHoleSTAR, dstResAvg, dstmask );
-		imshow( "dstHole3_+", dstHole3 );
-		imshow( "dstResAvg_+", dstResAvg );
+		fastCopyByMask32FC3( dst, dstHole3, dstResAvg, thresval, lfstargain, dstResAvg, dstmask );
 
-		imshow( "maszk", dstmask );
+		colorMix( dstResAvg, dstResAvg, lfRed, lfGreen, lfBlue );
+
+		//clrBlur( dstResAvg, dstResAvg, iclrblur, lfsaturate );
+		//clrBlurWeightedByValue( dstResAvg, dstResAvg, iclrblur, lfsaturate );
+
 
 
 
@@ -3496,12 +3624,6 @@ int reduceStars( char *fileName, Mat src )
 */
 
 
-		if( act.event == EVENT_LBUTTONDOWN ) {
-		//if( act.event == EVENT_LBUTTONUP ) {
-			whiteBalancePt( src, dst0, act.pt );
-			meanRGB = mean( dst0, noArray() );
-		}
-		circle( dst, act.pt, 10, Scalar(0,0,1), 1 );
 
 
 		{
@@ -3807,7 +3929,7 @@ int strechImage(char *fileName, int rot)
 	int		ifsubmax = 4000;
 	double	fsub = (double)ifsub / 1000.0;//0.102;
 
-	int		iautolight = 1;
+	int		iautolight = 0;
 
 
 	int		isave = 0;
@@ -3824,22 +3946,23 @@ int strechImage(char *fileName, int rot)
 	Mat		dstPar2 = src.clone();
 	int		icircles = 1;
 
-	if( 0 ) {
-		int		iinc = 50;
-		for (int i = 0; i < src.cols; i+=iinc ) {
-			for (int j = 0; j < src.rows; j+=iinc) {
+	if( 1 ) {
+		int		ii0 = 10;
+		int		iinc = 15;
+		for (int i = ii0; i < src.cols - ii0; i+=iinc ) {
+			for (int j = ii0; j < src.rows - ii0; j+=iinc) {
 				Vec3f intensity;
 				get3x3Avegrage( dst, i, j, intensity );
 				double	mmin = 0.9;
 				double	mmax = 1.5;
-				if(    intensity.val[0] > mmin * meanRGB.val[0]  &&  intensity.val[0] < mmax * meanRGB.val[0]
-					&& intensity.val[1] > mmin * meanRGB.val[1]  &&  intensity.val[1] < mmax * meanRGB.val[1]
-					&& intensity.val[2] > mmin * meanRGB.val[2]  &&  intensity.val[2] < mmax * meanRGB.val[2]
-				) {
+			//	if(    intensity.val[0] > mmin * meanRGB.val[0]  &&  intensity.val[0] < mmax * meanRGB.val[0]
+			//		&& intensity.val[1] > mmin * meanRGB.val[1]  &&  intensity.val[1] < mmax * meanRGB.val[1]
+			//		&& intensity.val[2] > mmin * meanRGB.val[2]  &&  intensity.val[2] < mmax * meanRGB.val[2]
+			//	) {
 					control[0].push_back( Point3d(i, j, intensity.val[0] ) );
 					control[1].push_back( Point3d(i, j, intensity.val[1] ) );
 					control[2].push_back( Point3d(i, j, intensity.val[2] ) );
-				}
+			//	}
 			}
 		}
 	}
@@ -3982,7 +4105,7 @@ int strechImage(char *fileName, int rot)
 					Vec3f intensity;
 					get3x3Avegrage( src, act.pt.x, act.pt.y, intensity );
 
-#define CSAK_V	1
+//#define CSAK_V	1
 #if defined(CSAK_V)
 					//	HSV-kent tegyuk el, majd csak a V csatornat hasznaljuk
 					clrRGB2HSV( (Scalar)intensity, (Scalar)intensity );
@@ -4209,7 +4332,7 @@ int main( int argc, char *argv[] )
 	//char fileName[100] = VPATH"AutoRGBAlign001.TIF"; rot = 0;
 	//char fileName[100] = VPATH"20200414_0415_NothAmerica_Pont.png"; rot = 0;
 	//char fileName[100] = VPATH"20200414_0415_NothAmerica_Pont.tif"; rot = 0;							//	!!!
-	char fileName[100] = VPATH"20211002_Mc_Rosetta_0h31med_02.tif"; rot = 0;
+	//char fileName[100] = VPATH"20211002_Mc_Rosetta_0h31med_02.tif"; rot = 0;
 	//char fileName[100] = VPATH"20200414_0415_0420_0421_NorthAmerica_Pont_4grp_chnalign.tif"; rot = 0;
 	//char fileName[100] = VPATH"NorthAmerica1Frame.jpg"; rot = 0;
 	//char fileName[100] = VPATH"20200820_Bp_Adnromeda2.tif"; rot = 0;
@@ -4247,8 +4370,14 @@ int main( int argc, char *argv[] )
 	//char fileName[100] = VPATH"20191026_Pleiades.tif"; rot = 0;
 	//char fileName[100] = VPATH"20191026_Andromeda.tif"; rot = 0;
 	//char fileName[100] = VPATH"200101_Bp_BodeCigar.tif"; rot = 0;
-	//char fileName[100] = VPATH"20220106_Pilisszentlelet_Orion_50mm_1h31m_L.tif"; rot = 0;
+	char fileName[100] = VPATH"20220106_Pilisszentlelet_Orion_50mm_1h31m_L.tif"; rot = 0;
+	//char fileName[100] = VPATH"20220106_Pilisszentlelet_Orion_50mm_2.tif"; rot = 0;		
 	//char fileName[100] = VPATH"PoGe_Orion_1.TIF"; rot = 0;
+	//char fileName[100] = VPATH"SZG_Cepheus.tif"; rot = 0;
+	//char fileName[100] = VPATH"CombineFilesAvg2.tif"; rot = 0;
+	//char fileName[100] = VPATH"MasterFlat_ISO800.tif"; rot = 0;
+	
+	
 
 	
 
