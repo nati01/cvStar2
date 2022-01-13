@@ -2719,7 +2719,7 @@ int fastThreshOnImg32FC3( Mat src, Mat src2, double lfthres, int ierode, Mat &ds
 	//str = type2str( chns[ 0 ] );
 	Mat		maskloc[ 3 ];
 	Mat		chns[ 3 ];
-
+	int		ierodeloc = ierode - 2;
 	split( src, chns );
 
 	dstmask = Mat( src.size(), src.type() );
@@ -2730,8 +2730,14 @@ int fastThreshOnImg32FC3( Mat src, Mat src2, double lfthres, int ierode, Mat &ds
 	bitwise_or( maskloc[ 0 ], maskloc[ 1 ], maskloc[ 0 ] );
 	bitwise_or( maskloc[ 0 ], maskloc[ 2 ], dstmask    );
 
-	if( ierode ) {
-		erode( dstmask, dstmask, getStructuringElement( MORPH_ELLIPSE, Size(ierode, ierode) ) );
+	if( ierodeloc ) {
+		if( ierodeloc < 0 ) {
+			dilate( dstmask, dstmask, getStructuringElement( MORPH_ELLIPSE, Size(-ierodeloc, -ierodeloc) ) );
+		} else {
+		//if( ierode ) {
+			//erode( dstmask, dstmask, getStructuringElement( MORPH_ELLIPSE, Size(ierode, ierode) ) );
+			erode( dstmask, dstmask, getStructuringElement( MORPH_ELLIPSE, Size(ierodeloc, ierodeloc) ) );
+		}
 	}
 
 	dstmask.convertTo(dstmask, CV_8UC1, 255.0);
@@ -3213,7 +3219,7 @@ int reduceStars( char *fileName, Mat src )
 		if( act.event == EVENT_LBUTTONDOWN ) {
 		//if( act.event == EVENT_LBUTTONUP ) {
 			whiteBalancePt( src, dst0, act.pt );
-			meanRGB = mean( dst0, noArray() );
+			//meanRGB = mean( dst0, noArray() );
 		}
 		circle( dst, act.pt, 10, Scalar(0,0,1), 1 );
 
@@ -3306,11 +3312,11 @@ int reduceStars( char *fileName, Mat src )
 		createTrackbar("- Hatter2", "Csuszkak", &ifsub2, ifsubmax2, on_trackbar);
 		fsub2 = (double)ifsub2/1000.0;
 
-		createTrackbar("Clr blur", "Csuszkak", &iclrblur0, iclrblurmax, on_trackbar);
-		iclrblur = iclrblur0*2+1;
+		//createTrackbar("Clr blur", "Csuszkak", &iclrblur0, iclrblurmax, on_trackbar);
+		//iclrblur = iclrblur0*2+1;
 
-		createTrackbar("Saturate", "Csuszkak", &isaturate, isaturatemax, on_trackbar);
-		lfsaturate = isaturate / 1000.0;
+		//createTrackbar("Saturate", "Csuszkak", &isaturate, isaturatemax, on_trackbar);
+		//lfsaturate = isaturate / 1000.0;
 
 		createTrackbar("Red", "Csuszkak", &iRed, iRedmax, on_trackbar);
 		lfRed     = (double)iRed / 100.0;
@@ -4379,7 +4385,7 @@ int main( int argc, char *argv[] )
 	//char fileName[100] = VPATH"Autosave001.jpg"; rot = 0;
 	//char fileName[100] = VPATH"AutoRGBAlign001.TIF"; rot = 0;
 	//char fileName[100] = VPATH"20200414_0415_NothAmerica_Pont.png"; rot = 0;
-	char fileName[100] = VPATH"20200414_0415_NothAmerica_Pont.tif"; rot = 0;							//	!!!
+	//char fileName[100] = VPATH"20200414_0415_NothAmerica_Pont.tif"; rot = 0;							//	!!!
 	//char fileName[100] = VPATH"20211002_Mc_Rosetta_0h31med_02.tif"; rot = 0;
 	//char fileName[100] = VPATH"20200414_0415_0420_0421_NorthAmerica_Pont_4grp_chnalign.tif"; rot = 0;
 	//char fileName[100] = VPATH"NorthAmerica1Frame.jpg"; rot = 0;
@@ -4397,7 +4403,7 @@ int main( int argc, char *argv[] )
 	//char fileName[100] = VPATH"20200627_Lagoon(200f4f56)LD.tif"; rot = 0;
 	//char fileName[100] = VPATH"Cygnus_50mm.tif"; rot = 0;
 	//char fileName[100] = VPATH"20200812_Mc_Dumbbell.tif"; rot = 0;
-	//char fileName[100] = VPATH"OmegaNebula.tif"; rot = 0;
+	char fileName[100] = VPATH"OmegaNebula.tif"; rot = 0;
 	//char fileName[100] = VPATH"NorthAmerica_50mm.tif"; rot = 0;
 	//char fileName[100] = VPATH"ElephantMcHortobagy_DSS06.tif"; rot = 0;
 	//char fileName[100] = VPATH"20211002_Mc_ngc7822_1h21_01.tif"; rot = 0;
